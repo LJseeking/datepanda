@@ -1,0 +1,731 @@
+// 杭州大学生第一阶段问卷（v1）
+// 问题用于匹配与聊天引导
+
+export const QUESTIONNAIRE_VERSION = "v1";
+
+export type QuestionType = "single" | "multi" | "scale" | "text";
+
+export type QuestionOption = {
+  value: string;
+  label: string;
+};
+
+export type ScaleSpec = {
+  min: number;
+  max: number;
+  labels?: [string, string];
+};
+
+export type Question = {
+  key: string;
+  title: string;
+  type: QuestionType;
+  required?: boolean;
+  options?: QuestionOption[];
+  scale?: ScaleSpec;
+  tags?: string[];
+};
+
+export const QUESTIONS: readonly Question[] = [
+  // A. 基础信息与边界（1-10）
+  {
+    key: "basic_age_range",
+    title: "你的年龄段是？",
+    type: "single",
+    required: true,
+    options: [
+      { value: "18-19", label: "18-19" },
+      { value: "20-21", label: "20-21" },
+      { value: "22-23", label: "22-23" },
+      { value: "24+", label: "24+" },
+      { value: "prefer_not_say", label: "不方便透露" },
+    ],
+  },
+  {
+    key: "basic_grade",
+    title: "你目前的年级/阶段是？",
+    type: "single",
+    required: true,
+    options: [
+      { value: "freshman", label: "大一" },
+      { value: "sophomore", label: "大二" },
+      { value: "junior", label: "大三" },
+      { value: "senior", label: "大四" },
+      { value: "master", label: "研究生" },
+      { value: "phd", label: "博士" },
+      { value: "other", label: "其他" },
+    ],
+  },
+  {
+    key: "basic_school",
+    title: "你所在学校是？",
+    type: "single",
+    required: true,
+    options: [
+      { value: "zju", label: "浙江大学" },
+      { value: "hznu", label: "杭州师范大学" },
+      { value: "hdu", label: "杭州电子科技大学" },
+      { value: "zjut", label: "浙江工业大学" },
+      { value: "zafu", label: "浙江农林大学" },
+      { value: "zju_city", label: "浙大城市学院/其他在杭院校" },
+      { value: "other", label: "其他（在杭）" },
+    ],
+  },
+  {
+    key: "basic_major_area",
+    title: "你的专业大类更接近？",
+    type: "single",
+    required: false,
+    options: [
+      { value: "cs_engineering", label: "理工/计算机/工程" },
+      { value: "science", label: "理学/数学/物理/化学" },
+      { value: "medicine", label: "医学/生命科学" },
+      { value: "business", label: "经管/金融" },
+      { value: "humanities", label: "人文/社科/法学" },
+      { value: "arts", label: "艺术/设计" },
+      { value: "education", label: "教育/师范" },
+      { value: "other", label: "其他" },
+    ],
+  },
+  {
+    key: "basic_city_in_hz",
+    title: "你在杭州常活动的区域更偏向？",
+    type: "multi",
+    required: false,
+    options: [
+      { value: "xihu", label: "西湖/黄龙" },
+      { value: "jianggan", label: "江干/钱江新城" },
+      { value: "binjiang", label: "滨江" },
+      { value: "gongshu", label: "拱墅" },
+      { value: "xiaoshan", label: "萧山" },
+      { value: "yuhang", label: "余杭/未来科技城" },
+      { value: "linan_fuyang", label: "临安/富阳等" },
+    ],
+  },
+  {
+    key: "boundary_visibility",
+    title: "你更希望在平台展示的个人信息程度是？",
+    type: "single",
+    required: true,
+    options: [
+      { value: "minimal", label: "尽量少（只展示必要信息）" },
+      { value: "balanced", label: "适中（便于匹配）" },
+      { value: "open", label: "较开放（愿意多展示）" },
+    ],
+  },
+  {
+    key: "boundary_contact_speed",
+    title: "你希望匹配后多久开始聊天更舒服？",
+    type: "single",
+    required: true,
+    options: [
+      { value: "immediately", label: "马上开始" },
+      { value: "same_day", label: "当天" },
+      { value: "1_3_days", label: "1-3天" },
+      { value: "later", label: "更久也可以" },
+    ],
+  },
+  {
+    key: "boundary_photo_policy",
+    title: "你对上传个人照片的态度是？",
+    type: "single",
+    required: true,
+    options: [
+      { value: "must_have", label: "必须有照片我才愿意聊" },
+      { value: "nice_to_have", label: "有更好，但不是必须" },
+      { value: "no_photo_ok", label: "不太在意，聊得来更重要" },
+      { value: "prefer_no_photo", label: "我更倾向不放照片" },
+    ],
+  },
+  {
+    key: "boundary_first_meet",
+    title: "第一次线下见面你更倾向？",
+    type: "single",
+    required: true,
+    options: [
+      { value: "public_place", label: "人多的公共场所（咖啡馆/商场）" },
+      { value: "campus", label: "校园内" },
+      { value: "walk", label: "散步/公园" },
+      { value: "depends", label: "看情况" },
+    ],
+  },
+  {
+    key: "boundary_dealbreakers",
+    title: "你最不能接受的点（可多选）？",
+    type: "multi",
+    required: false,
+    options: [
+      { value: "dishonesty", label: "不真诚/撒谎" },
+      { value: "disrespect", label: "不尊重边界" },
+      { value: "cold_violence", label: "冷暴力/消失" },
+      { value: "dirty", label: "卫生习惯差" },
+      { value: "smoking_heavy", label: "重度吸烟" },
+      { value: "drinking_heavy", label: "重度饮酒" },
+      { value: "gossiping", label: "爱八卦/传播隐私" },
+      { value: "other", label: "其他" },
+    ],
+  },
+  // B. 性别认同、性取向与关系偏好（11-20）
+  {
+    key: "identity_gender",
+    title: "你的性别认同是？",
+    type: "single",
+    required: true,
+    options: [
+      { value: "male", label: "男" },
+      { value: "female", label: "女" },
+      { value: "non_binary", label: "非二元/性别多元" },
+      { value: "prefer_not_say", label: "不方便透露" },
+    ],
+  },
+  {
+    key: "identity_pronoun",
+    title: "你更希望别人如何称呼你（可多选）？",
+    type: "multi",
+    required: false,
+    options: [
+      { value: "he", label: "他" },
+      { value: "she", label: "她" },
+      { value: "they", label: "TA/他们" },
+      { value: "no_preference", label: "无所谓" },
+      { value: "prefer_not_say", label: "不方便透露" },
+    ],
+  },
+  {
+    key: "orientation",
+    title: "你的性取向更接近？（用于匹配偏好）",
+    type: "single",
+    required: true,
+    options: [
+      { value: "heterosexual", label: "异性恋" },
+      { value: "homosexual", label: "同性恋" },
+      { value: "bisexual", label: "双性恋" },
+      { value: "pansexual", label: "泛性恋" },
+      { value: "asexual", label: "无性恋/低性吸引" },
+      { value: "questioning", label: "探索中/不确定" },
+      { value: "prefer_not_say", label: "不方便透露" },
+    ],
+  },
+  {
+    key: "match_gender_preference",
+    title: "你希望匹配对象的性别认同是？（可多选）",
+    type: "multi",
+    required: true,
+    options: [
+      { value: "male", label: "男" },
+      { value: "female", label: "女" },
+      { value: "non_binary", label: "非二元/性别多元" },
+      { value: "no_limit", label: "不限制" },
+      { value: "prefer_not_say", label: "不方便透露" },
+    ],
+  },
+  {
+    key: "relationship_goal",
+    title: "你使用 DatePanda 更偏向的目标是？",
+    type: "single",
+    required: true,
+    options: [
+      { value: "serious", label: "认真恋爱/长期关系" },
+      { value: "dating", label: "约会了解，顺其自然" },
+      { value: "friends_first", label: "先交朋友再说" },
+      { value: "chat_only", label: "主要聊天/扩大社交" },
+    ],
+  },
+  {
+    key: "relationship_exclusivity",
+    title: "你对关系的排他性偏好是？",
+    type: "single",
+    required: true,
+    options: [
+      { value: "exclusive", label: "偏好一对一排他" },
+      { value: "open_to_discuss", label: "看情况可讨论" },
+      { value: "open", label: "可接受开放式关系" },
+      { value: "prefer_not_say", label: "不方便透露" },
+    ],
+  },
+  {
+    key: "relationship_pace",
+    title: "你更舒服的关系推进速度是？",
+    type: "single",
+    required: true,
+    options: [
+      { value: "slow", label: "慢热型" },
+      { value: "medium", label: "适中" },
+      { value: "fast", label: "节奏快也OK" },
+    ],
+  },
+  {
+    key: "public_affection",
+    title: "你对公开场合的亲密表达接受度是？",
+    type: "scale",
+    required: false,
+    scale: { min: 1, max: 5, labels: ["完全不接受", "非常接受"] },
+  },
+  {
+    key: "lgbtq_friendly",
+    title: "你对 LGBTQ+ 群体的态度是？",
+    type: "single",
+    required: true,
+    options: [
+      { value: "support", label: "尊重并支持" },
+      { value: "respect", label: "尊重但不太了解" },
+      { value: "neutral", label: "中立" },
+      { value: "prefer_not_say", label: "不方便透露" },
+    ],
+  },
+  {
+    key: "privacy_orientation",
+    title: "关于性取向/情感取向信息，你希望在匹配对象面前的展示方式是？",
+    type: "single",
+    required: true,
+    options: [
+      { value: "visible", label: "可见（用于精准匹配）" },
+      { value: "limited", label: "部分可见（仅用于系统匹配）" },
+      { value: "hidden", label: "隐藏（我会自己说）" },
+    ],
+  },
+  // C. 价值观与性格（21-32）
+  {
+    key: "personality_intro_extro",
+    title: "你更接近哪种社交能量？",
+    type: "scale",
+    required: true,
+    scale: { min: 1, max: 5, labels: ["非常内向", "非常外向"] },
+  },
+  {
+    key: "personality_rational_emotion",
+    title: "你做决定时更偏向？",
+    type: "scale",
+    required: true,
+    scale: { min: 1, max: 5, labels: ["更感性", "更理性"] },
+  },
+  {
+    key: "personality_planning",
+    title: "你对计划性的偏好是？",
+    type: "scale",
+    required: true,
+    scale: { min: 1, max: 5, labels: ["随性", "非常有计划"] },
+  },
+  {
+    key: "value_honesty",
+    title: "你认为亲密关系里“坦诚沟通”有多重要？",
+    type: "scale",
+    required: true,
+    scale: { min: 1, max: 5, labels: ["不太重要", "极其重要"] },
+  },
+  {
+    key: "value_growth",
+    title: "你对“共同成长”的重视程度是？",
+    type: "scale",
+    required: true,
+    scale: { min: 1, max: 5, labels: ["不太在意", "非常在意"] },
+  },
+  {
+    key: "value_money_view",
+    title: "你对金钱观更接近？",
+    type: "single",
+    required: false,
+    options: [
+      { value: "save", label: "偏储蓄/稳健" },
+      { value: "balance", label: "平衡消费与储蓄" },
+      { value: "enjoy", label: "更愿意享受当下" },
+      { value: "invest", label: "偏投资/规划" },
+    ],
+  },
+  {
+    key: "value_family",
+    title: "你对未来家庭/婚姻的态度是？",
+    type: "single",
+    required: false,
+    options: [
+      { value: "want", label: "倾向想要" },
+      { value: "maybe", label: "以后再看" },
+      { value: "no", label: "倾向不想要" },
+      { value: "prefer_not_say", label: "不方便透露" },
+    ],
+  },
+  {
+    key: "value_children",
+    title: "你对是否要孩子的态度是？",
+    type: "single",
+    required: false,
+    options: [
+      { value: "want", label: "想要" },
+      { value: "maybe", label: "不确定" },
+      { value: "no", label: "不想要" },
+      { value: "prefer_not_say", label: "不方便透露" },
+    ],
+  },
+  {
+    key: "value_conflict_style",
+    title: "发生矛盾时你更像哪种处理方式？",
+    type: "single",
+    required: true,
+    options: [
+      { value: "talk_now", label: "希望尽快沟通解决" },
+      { value: "cool_down", label: "需要冷静后再谈" },
+      { value: "avoid", label: "倾向回避/不太想谈" },
+      { value: "mixed", label: "看事情大小" },
+    ],
+  },
+  {
+    key: "value_apology",
+    title: "你对道歉的看法更接近？",
+    type: "single",
+    required: false,
+    options: [
+      { value: "words", label: "语言表达最重要" },
+      { value: "actions", label: "行动改变最重要" } ,
+      { value: "both", label: "两者都重要" },
+      { value: "not_important", label: "不太在意道歉形式" },
+    ],
+  },
+  {
+    key: "value_alone_time",
+    title: "恋爱中你需要多少独处空间？",
+    type: "scale",
+    required: true,
+    scale: { min: 1, max: 5, labels: ["几乎不需要", "非常需要"] },
+  },
+  {
+    key: "value_trust_speed",
+    title: "你建立信任的速度通常是？",
+    type: "single",
+    required: true,
+    options: [
+      { value: "slow", label: "慢慢来" },
+      { value: "medium", label: "适中" },
+      { value: "fast", label: "比较快" },
+    ],
+  },
+  // D. 生活方式与习惯（33-44）
+  {
+    key: "lifestyle_schedule",
+    title: "你的作息更接近？",
+    type: "single",
+    required: true,
+    options: [
+      { value: "early", label: "早睡早起" },
+      { value: "normal", label: "正常作息" },
+      { value: "night", label: "熬夜党" },
+      { value: "irregular", label: "不规律" },
+    ],
+  },
+  {
+    key: "lifestyle_exercise",
+    title: "你运动频率大概是？",
+    type: "single",
+    required: false,
+    options: [
+      { value: "0", label: "几乎不运动" },
+      { value: "1_2", label: "每周1-2次" },
+      { value: "3_4", label: "每周3-4次" },
+      { value: "5_plus", label: "每周5次以上" },
+    ],
+  },
+  {
+    key: "lifestyle_food",
+    title: "你的饮食偏好（可多选）？",
+    type: "multi",
+    required: false,
+    options: [
+      { value: "spicy", label: "爱吃辣" },
+      { value: "sweet", label: "偏甜" },
+      { value: "light", label: "清淡" },
+      { value: "hotpot", label: "火锅/烧烤" },
+      { value: "home_cook", label: "更喜欢家常/食堂" },
+      { value: "healthy", label: "健康控" },
+      { value: "vegetarian", label: "素食/轻素" },
+    ],
+  },
+  {
+    key: "lifestyle_smoke",
+    title: "你是否吸烟？",
+    type: "single",
+    required: true,
+    options: [
+      { value: "no", label: "不吸烟" },
+      { value: "social", label: "社交场合偶尔" },
+      { value: "yes", label: "会吸烟" },
+      { value: "trying_quit", label: "在戒/减少中" },
+    ],
+  },
+  {
+    key: "lifestyle_drink",
+    title: "你是否饮酒？",
+    type: "single",
+    required: true,
+    options: [
+      { value: "no", label: "几乎不喝" },
+      { value: "sometimes", label: "偶尔小酌" },
+      { value: "often", label: "经常喝" },
+      { value: "social", label: "社交需要" },
+    ],
+  },
+  {
+    key: "lifestyle_cleanliness",
+    title: "你对居住环境整洁度的要求是？",
+    type: "scale",
+    required: true,
+    scale: { min: 1, max: 5, labels: ["随意", "非常讲究"] },
+  },
+  {
+    key: "lifestyle_pet",
+    title: "你对宠物的态度是？",
+    type: "single",
+    required: false,
+    options: [
+      { value: "love", label: "很喜欢" },
+      { value: "ok", label: "可以接受" },
+      { value: "allergy", label: "过敏/不太行" },
+      { value: "not_like", label: "不喜欢" },
+    ],
+  },
+  {
+    key: "lifestyle_travel",
+    title: "你对旅行的偏好是？",
+    type: "single",
+    required: false,
+    options: [
+      { value: "city", label: "城市逛吃" },
+      { value: "nature", label: "自然风景" },
+      { value: "culture", label: "人文博物馆" },
+      { value: "staycation", label: "宅家/周边" },
+    ],
+  },
+  {
+    key: "lifestyle_spend",
+    title: "你的消费风格更接近？",
+    type: "single",
+    required: false,
+    options: [
+      { value: "frugal", label: "偏省" },
+      { value: "balanced", label: "平衡型" },
+      { value: "enjoy", label: "享受型" },
+    ],
+  },
+  {
+    key: "lifestyle_weekend",
+    title: "周末你更常做什么（可多选）？",
+    type: "multi",
+    required: false,
+    options: [
+      { value: "study", label: "学习/自习" },
+      { value: "sports", label: "运动" },
+      { value: "friends", label: "朋友聚会" },
+      { value: "sleep", label: "睡觉休息" },
+      { value: "games", label: "游戏" },
+      { value: "explore", label: "逛街/探店" },
+      { value: "club", label: "社团/活动" },
+    ],
+  },
+  {
+    key: "lifestyle_distance",
+    title: "恋爱中见面频率你更偏好？",
+    type: "single",
+    required: true,
+    options: [
+      { value: "often", label: "经常（每周多次）" },
+      { value: "weekly", label: "每周1次左右" },
+      { value: "biweekly", label: "两周1次左右" },
+      { value: "flexible", label: "弹性，看双方状态" },
+    ],
+  },
+  {
+    key: "lifestyle_time_budget",
+    title: "你目前能投入到恋爱/约会的时间多吗？",
+    type: "single",
+    required: true,
+    options: [
+      { value: "a_lot", label: "比较多" },
+      { value: "some", label: "一般" },
+      { value: "little", label: "不太多" },
+      { value: "unstable", label: "不稳定" },
+    ],
+  },
+  // E. 沟通与相处（45-54）
+  {
+    key: "comm_prefer_channel",
+    title: "你更喜欢的沟通方式是？",
+    type: "multi",
+    required: false,
+    options: [
+      { value: "text", label: "文字聊天" },
+      { value: "voice", label: "语音" },
+      { value: "call", label: "电话" },
+      { value: "face_to_face", label: "线下见面聊" },
+    ],
+  },
+  {
+    key: "comm_reply_speed",
+    title: "你对回复速度的期待是？",
+    type: "single",
+    required: true,
+    options: [
+      { value: "fast", label: "尽量快" },
+      { value: "normal", label: "正常就好" },
+      { value: "slow_ok", label: "慢点也可以" },
+      { value: "no_expect", label: "不太在意" },
+    ],
+  },
+  {
+    key: "comm_conflict_tone",
+    title: "沟通中你更在意？",
+    type: "single",
+    required: false,
+    options: [
+      { value: "facts", label: "事实与逻辑" },
+      { value: "feelings", label: "情绪与感受" },
+      { value: "both", label: "两者都要" },
+    ],
+  },
+  {
+    key: "comm_love_language",
+    title: "你更容易感受到爱来自哪里？（可多选）",
+    type: "multi",
+    required: false,
+    options: [
+      { value: "words", label: "语言肯定" },
+      { value: "time", label: "高质量陪伴" },
+      { value: "gifts", label: "礼物/惊喜" },
+      { value: "service", label: "行动帮助" },
+      { value: "touch", label: "肢体接触（如拥抱）" },
+    ],
+  },
+  {
+    key: "comm_humor",
+    title: "你对幽默/玩笑的接受度是？",
+    type: "scale",
+    required: false,
+    scale: { min: 1, max: 5, labels: ["很严肃", "很爱玩梗"] },
+  },
+  {
+    key: "comm_boundaries_talk",
+    title: "当对方触碰你的边界时，你更可能？",
+    type: "single",
+    required: true,
+    options: [
+      { value: "direct", label: "直接说明并沟通" },
+      { value: "hint", label: "暗示/委婉表达" },
+      { value: "silent", label: "先忍一忍再看" },
+      { value: "end", label: "直接疏远/结束" },
+    ],
+  },
+  {
+    key: "comm_jealousy",
+    title: "你对吃醋/占有欲的感受是？",
+    type: "single",
+    required: false,
+    options: [
+      { value: "low", label: "我比较不会" },
+      { value: "medium", label: "偶尔会" },
+      { value: "high", label: "容易在意" },
+      { value: "prefer_not_say", label: "不方便透露" },
+    ],
+  },
+  {
+    key: "comm_social_media",
+    title: "你愿意在社交媒体上公开恋爱关系吗？",
+    type: "single",
+    required: false,
+    options: [
+      { value: "yes", label: "愿意" },
+      { value: "no", label: "不愿意" },
+      { value: "depends", label: "看对方和关系程度" },
+    ],
+  },
+  {
+    key: "comm_problem_solving",
+    title: "遇到问题你更偏向？",
+    type: "single",
+    required: true,
+    options: [
+      { value: "solve", label: "一起解决问题" },
+      { value: "comfort", label: "先安抚情绪再解决" },
+      { value: "space", label: "先给彼此空间" },
+    ],
+  },
+  {
+    key: "comm_long_distance",
+    title: "你对短期异地/忙碌期的接受度是？",
+    type: "scale",
+    required: false,
+    scale: { min: 1, max: 5, labels: ["完全不接受", "完全接受"] },
+  },
+  // F. 兴趣与匹配偏好（55-60）
+  {
+    key: "interest_topics",
+    title: "你最感兴趣的话题（可多选）？",
+    type: "multi",
+    required: false,
+    options: [
+      { value: "movies_music", label: "电影/音乐" },
+      { value: "games_anime", label: "游戏/动漫" },
+      { value: "sports_fitness", label: "运动/健身" },
+      { value: "food_coffee", label: "美食/咖啡" },
+      { value: "travel_photography", label: "旅行/摄影" },
+      { value: "books_learning", label: "读书/学习" },
+      { value: "tech", label: "科技/数码" },
+      { value: "art_design", label: "艺术/设计" },
+    ],
+  },
+  {
+    key: "interest_date_style",
+    title: "你更喜欢的约会形式（可多选）？",
+    type: "multi",
+    required: true,
+    options: [
+      { value: "coffee", label: "咖啡/奶茶聊天" },
+      { value: "walk", label: "散步/公园" },
+      { value: "movie", label: "电影" },
+      { value: "museum", label: "展览/博物馆" },
+      { value: "sports", label: "一起运动" },
+      { value: "food", label: "探店/美食" },
+      { value: "boardgame", label: "桌游/密室" },
+    ],
+  },
+  {
+    key: "match_distance",
+    title: "你希望对方和你距离多远合适？",
+    type: "single",
+    required: true,
+    options: [
+      { value: "same_school", label: "同校最好" },
+      { value: "same_city", label: "同城即可" },
+      { value: "nearby", label: "杭州周边也行" },
+      { value: "no_limit", label: "不限制" },
+    ],
+  },
+  {
+    key: "match_personality_complement",
+    title: "你更偏好性格相似还是互补？",
+    type: "single",
+    required: true,
+    options: [
+      { value: "similar", label: "相似更舒服" },
+      { value: "complement", label: "互补更有趣" },
+      { value: "either", label: "都可以" },
+    ],
+  },
+  {
+    key: "match_red_flags",
+    title: "你最介意对方哪些行为（可多选）？",
+    type: "multi",
+    required: false,
+    options: [
+      { value: "ghosting", label: "忽冷忽热/消失" },
+      { value: "rude", label: "不礼貌/刻薄" },
+      { value: "control", label: "强控制欲" },
+      { value: "no_respect", label: "不尊重多元与差异" },
+      { value: "messy", label: "生活很混乱" },
+      { value: "all_about_me", label: "只聊自己" },
+      { value: "other", label: "其他" },
+    ],
+  },
+  {
+    key: "open_text_self_intro",
+    title: "用一句话介绍你自己（用于匹配展示）",
+    type: "text",
+    required: false,
+  },
+];
