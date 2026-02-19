@@ -10,115 +10,55 @@
 
 ## 鉴权矩阵
 
-| 接口 | Header | Env 变量 | 默认值 |
-|------|--------|---------|--------|
-| `POST /api/cron/matching/thu` | `Authorization: Bearer <secret>` | `CRON_SECRET` | 无（未设则拒绝） |
-| `POST /api/cron/matching/fri` | `Authorization: Bearer <secret>` | `CRON_SECRET` | 无（未设则拒绝） |
-| `GET /api/debug/matching/state` | `x-admin-token: <token>` | `MATCH_ADMIN_TOKEN` | `dev-admin-token` |
+## 上线检查清单 (Deployment Checklist)
 
-> **常见 401 原因：**
-> - Cron 用了 `x-cron-secret` header（旧写法）→ 改为 `Authorization: Bearer <secret>`
-> - Debug 用了 `Authorization` header → 改为 `x-admin-token: <token>`
+### 1. Vercel 环境变量配置
+在 Vercel 项目 Settings -> Environment Variables 中配置以下变量：
+- `DATABASE_URL`: Neon Pooler URL (生产运行时用)
+- `DATABASE_URL_UNPOOLED`: Neon Direct URL (Migration 用)
+- `CRON_SECRET`: 任意 32 字节 hex 字符串 (用于 Cron 鉴权)
+- `MATCH_ADMIN_TOKEN`: 自定义强密码 (用于 Debug 接口)
+- `APP_BASE_URL`: 生产域名 (如 `https://datepanda.com`)
+- `EMAIL_PROVIDER`: `console` (上线初期不发邮件) 或 `smtp` (后续启用)
 
----
+### 2. Vercel Cron 配置
+本项目已包含 `vercel.json`，配置了以下 Cron 任务：
+- **周四 20:00 (CST)**: `/api/cron/matching/thu` (UTC 12:00)
+- **周五 20:00 (CST)**: `/api/cron/matching/fri` (UTC 12:00)
 
-## Prisma 7 架构说明
-
-Prisma 7 **完全移除了 library/binary engine**，必须使用 driver adapter：
-
-```typescript
-// src/lib/db/prisma.ts — 唯一的 PrismaClient 初始化点
-import { PrismaPg } from "@prisma/adapter-pg";
-import { Pool } from "pg";
-
-const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: ... });
-new PrismaClient({ adapter: new PrismaPg(pool) });
-```
-
-`prisma.config.ts` 仅供 CLI migrate 使用（读 `DATABASE_URL_UNPOOLED` 直连），运行时读 `DATABASE_URL`（pooler）。
-
----
-
-## 环境变量清单
-
-| 变量 | 必须 | 说明 |
-|------|------|------|
-| `DATABASE_URL` | ✅ | Neon **pooler** URL（`?sslmode=require`），运行时使用 |
-| `DATABASE_URL_UNPOOLED` | ✅ | Neon **直连** URL，`prisma migrate deploy` 使用 |
-| `CRON_SECRET` | ✅ | Cron 鉴权 secret，`openssl rand -hex 32` 生成 |
-| `MATCH_ADMIN_TOKEN` | ✅ | Debug 接口 token，生产建议设强密码 |
-| `APP_BASE_URL` | ✅ | 应用根 URL，如 `https://your-app.vercel.app` |
-| `EMAIL_PROVIDER` | ✅ | `console`（默认）或 `smtp` |
-| `SMTP_HOST` | 可选 | `EMAIL_PROVIDER=smtp` 时必填 |
-| `SMTP_PORT` | 可选 | 默认 587 |
-| `SMTP_SECURE` | 可选 | `false`（STARTTLS）或 `true`（SSL） |
-| `SMTP_USER` | 可选 | SMTP 用户名 |
-| `SMTP_PASS` | 可选 | SMTP 密码 |
-| `SMTP_FROM` | 可选 | 发件人，如 `DatePanda <noreply@datepanda.com>` |
-
----
-
-## 本地从零启动
-
+### 3. 本地验证 (Dry Run)
+在本地模拟生产环境运行：
 ```bash
-# 1. 复制环境变量
-cp .env.example .env
-# 编辑 .env，填写 DATABASE_URL / DATABASE_URL_UNPOOLED / CRON_SECRET
+# 1. Build
+pnpm build
 
-# 2. 安装依赖（postinstall 自动运行 prisma generate）
-pnpm install
+# 2. Start
+export PORT=3000
+pnpm start
 
-# 3. 启动 dev server
-pnpm dev
-# 预期：✓ Ready in ~1s，监听 http://localhost:3000
+# 3. Trigger Cron (Dry Run)
+curl -X POST http://localhost:3000/api/cron/matching/thu \
+     -H "Authorization: Bearer <YOUR_CRON_SECRET>"
+
+# 预期输出:
+# {
+#   "ok": true,
+#   "data": {
+#     "emails": { "sent": X, "skippedAlreadySent": Y, ... }
+#   }
+# }
 ```
 
----
-
-## 本地验证命令
-
+### 4. 生产验证
+上线后执行：
 ```bash
-CRON_SECRET="DsOibcebFfQQu01/IjsYTwGSMGVFGpC2Y56mrhjAEr38brakKvx030bIhkImvJbq"
-BASE="http://localhost:3000"
+# 触发 Cron (如需手动触发)
+curl -X POST https://your-domain.com/api/cron/matching/thu \
+     -H "Authorization: Bearer <PROD_CRON_SECRET>"
 
-# ① THU cron（预期 200，ok:true）
-curl -s -X POST "$BASE/api/cron/matching/thu" \
-  -H "Authorization: Bearer $CRON_SECRET"
-
-# ② FRI cron（预期 200，ok:true）
-curl -s -X POST "$BASE/api/cron/matching/fri" \
-  -H "Authorization: Bearer $CRON_SECRET"
-
-# ③ Debug state（预期 200，ok:true）
-curl -s "$BASE/api/debug/matching/state?weekKey=2026-08" \
-  -H "x-admin-token: dev-admin-token"
-
-# ④ 错误 secret → 401
-curl -s -X POST "$BASE/api/cron/matching/thu" \
-  -H "Authorization: Bearer wrong"
-# 预期：{"ok":false,"error":{"code":"UNAUTHORIZED",...}}
-```
-
-**预期响应示例：**
-```json
-{"ok":true,"data":{"weekKey":"2026-08","round":"THU","createdProposalsCount":0,
-  "emails":{"sent":0,"skippedAlreadySent":0,"skippedNotVerified":0,"skippedInvalidEmail":0,"failed":0},
-  "durationMs":1569}}
-```
-
----
-
-## 生产验证命令
-
-```bash
-CRON_SECRET="<生产 CRON_SECRET>"
-BASE="https://your-app.vercel.app"
-
-curl -s -X POST "$BASE/api/cron/matching/thu" \
-  -H "Authorization: Bearer $CRON_SECRET"
-
-curl -s "$BASE/api/debug/matching/state?weekKey=$(date -u +%Y-%V)" \
-  -H "x-admin-token: <生产 MATCH_ADMIN_TOKEN>"
+# 查看状态
+curl https://your-domain.com/api/debug/matching/state?weekKey=YYYY-WW \
+     -H "x-admin-token: <PROD_ADMIN_TOKEN>"
 ```
 
 ---
