@@ -20,11 +20,11 @@ type MatchEmailData = {
     }
 };
 
-export type SendNotificationResult = 
-    | "SENT" 
-    | "SKIPPED_ALREADY_SENT" 
-    | "SKIPPED_NOT_VERIFIED" 
-    | "SKIPPED_INVALID_EMAIL" 
+export type SendNotificationResult =
+    | "SENT"
+    | "SKIPPED_ALREADY_SENT"
+    | "SKIPPED_NOT_VERIFIED"
+    | "SKIPPED_INVALID_EMAIL"
     | "FAILED";
 
 /**
@@ -35,7 +35,7 @@ export async function sendMatchNotification(data: MatchEmailData): Promise<SendN
     const type = round === "THU" ? "MATCH_READY" : "SECOND_CHANCE";
     const MAX_RETRIES = 3;
     const PENDING_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
-    
+
     // 1. Check Idempotency (NotificationLog)
     // @@unique([userId, weekKey, round, type])
     const existingLog = await prisma.notificationLog.findUnique({
@@ -49,7 +49,7 @@ export async function sendMatchNotification(data: MatchEmailData): Promise<SendN
     if (existingLog) {
         if (existingLog.status === "SENT") {
             // Already sent success
-            return "SKIPPED_ALREADY_SENT"; 
+            return "SKIPPED_ALREADY_SENT";
         } else if (existingLog.status === "FAILED") {
             // Check retry count
             if (existingLog.retryCount >= MAX_RETRIES) {
@@ -61,9 +61,9 @@ export async function sendMatchNotification(data: MatchEmailData): Promise<SendN
             // Check updatedAt to see if it's stale
             const timeDiff = Date.now() - existingLog.updatedAt.getTime();
             if (timeDiff < PENDING_TIMEOUT_MS) {
-                 // Still fresh pending, likely another process working
-                 console.log(`[Email] Concurrent pending for ${userId} ${type}`);
-                 return "SKIPPED_ALREADY_SENT"; // Treat as handled
+                // Still fresh pending, likely another process working
+                console.log(`[Email] Concurrent pending for ${userId} ${type}`);
+                return "SKIPPED_ALREADY_SENT"; // Treat as handled
             }
             // Stale pending, allow retry
             console.log(`[Email] Stale pending for ${userId} ${type}, retrying...`);
@@ -71,15 +71,15 @@ export async function sendMatchNotification(data: MatchEmailData): Promise<SendN
     }
 
     // 2. Prepare Content
-    const subject = round === "THU" 
+    const subject = round === "THU"
         ? "【DatePanda】本周匹配已生成（周四）- 去看看你的匹配对象"
         : "【DatePanda】你有一次新的匹配机会（周五第二次）";
 
     const commonPointsHtml = reasons.slice(0, 3).map(r => `<li>${r}</li>`).join("");
     const commonPointsText = reasons.slice(0, 3).map(r => `- ${r}`).join("\n");
-    
+
     const link = `${APP_BASE_URL}/matching`;
-    
+
     let introHtml = "";
     let introText = "";
 
@@ -128,8 +128,43 @@ export async function sendMatchNotification(data: MatchEmailData): Promise<SendN
     (双方同意才会开启聊天)
     `;
 
-    // 3. Send via Sender
-    
+    // 3. Send Check (Console vs SMTP)
+    const emailProvider = process.env.EMAIL_PROVIDER || "smtp";
+    if (emailProvider === "console") {
+        console.log(`[Email:Console] 
+        To: ${email}
+        Subject: ${subject}
+        Preview: ${introText}
+        Link: ${link}
+        `);
+
+        // Write SENT log directly
+        try {
+            const data = {
+                userId, weekKey, round, type,
+                toEmail: email,
+                status: "SENT",
+                proposalId,
+                metaJson: JSON.stringify({ score }),
+                sentAt: new Date(),
+                retryCount: existingLog ? (existingLog.retryCount + 1) : 0
+            };
+
+            if (existingLog) {
+                await prisma.notificationLog.update({ where: { id: existingLog.id }, data });
+            } else {
+                await prisma.notificationLog.create({ data });
+            }
+            return "SENT";
+        } catch (e: any) {
+            console.error(`[Email:Console] Failed to save log`, e);
+            if (e.code === 'P2002') return "SKIPPED_ALREADY_SENT";
+            return "FAILED";
+        }
+    }
+
+    // 4. Send via SMTP (Real)
+
     try {
         let logId = existingLog?.id;
 
@@ -162,7 +197,7 @@ export async function sendMatchNotification(data: MatchEmailData): Promise<SendN
 
         await prisma.notificationLog.update({
             where: { id: logId },
-            data: { 
+            data: {
                 status: success ? "SENT" : "FAILED",
                 sentAt: success ? new Date() : undefined,
                 error: success ? null : "Send returned false"
@@ -175,15 +210,15 @@ export async function sendMatchNotification(data: MatchEmailData): Promise<SendN
         console.error(`[Email] Failed to process for ${userId}`, e);
         // Try update log to failed if we have ID
         if (existingLog?.id) {
-             try {
+            try {
                 await prisma.notificationLog.update({
                     where: { id: existingLog.id },
-                    data: { 
-                        status: "FAILED", 
-                        error: e.message?.substring(0, 200) || "Unknown error" 
+                    data: {
+                        status: "FAILED",
+                        error: e.message?.substring(0, 200) || "Unknown error"
                     }
                 });
-             } catch(_) {}
+            } catch (_) { }
         }
         return "FAILED";
     }
