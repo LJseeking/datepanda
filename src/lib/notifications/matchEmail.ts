@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/db/prisma";
-import { sendEmail } from "@/lib/messaging/emailSender";
-import { decodeReasons } from "@/lib/matching/serialize";
+import { sendEmail } from "@/lib/email/resend";
 
 const APP_BASE_URL = process.env.APP_BASE_URL || "http://localhost:3000";
 
@@ -163,7 +162,7 @@ export async function sendMatchNotification(data: MatchEmailData): Promise<SendN
         }
     }
 
-    // 4. Send via SMTP (Real)
+    // 4. Send via SMTP (Real/Resend)
 
     try {
         let logId = existingLog?.id;
@@ -193,7 +192,8 @@ export async function sendMatchNotification(data: MatchEmailData): Promise<SendN
             });
         }
 
-        const success = await sendEmail(email, subject, html, text);
+        const result = await sendEmail({ to: email, subject, html, text });
+        const success = result.success;
 
         await prisma.notificationLog.update({
             where: { id: logId },
