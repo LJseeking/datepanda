@@ -31,9 +31,13 @@ git push -u origin main
 
 
 
+match admin token：o0HzpivToC331U0hIpM66uz5/4QuFAysvkvSfkNWNk4=
 
 
-DsOibcebFfQQu01/IjsYTwGSMGVFGpC2Y56mrhjAEr38brakKvx030bIhkImvJbq
+
+
+
+CRON: DsOibcebFfQQu01/IjsYTwGSMGVFGpC2Y56mrhjAEr38brakKvx030bIhkImvJbq
 
 
 
@@ -66,3 +70,22 @@ maisender：
 
 username：MS_eYTwEl@datepanda.fun
 
+
+
+
+
+
+
+resend 
+
+API key：re_NeP7wJUf_A4u4g3NzSAwnQdMMehNEfYgN
+
+
+
+
+
+curl -s -X POST 'https://datepanda.fun/api/email/test' \-H 'content-type: application/json' \
+
+  -H "x-admin-token: o0HzpivToC331U0hIpM66uz5/4QuFAysvkvSfkNWNk4=" \
+
+  -d '{"to":"wanglujie1987@gmail.com","subject":"DatePanda Resend Test (Prod)","html":"<p>It works on Vercel!</p>"}'
