@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { Question } from "@/lib/questionnaire/questions";
 import { calculateKikoDimensions, checkKikoConsistency } from "@/lib/matching/kiko";
+import { KIKO_QUESTIONS } from "@/lib/questionnaire/kikoQuestions";
 
 export type ProfileSnapshot = {
   traits: Record<string, number>;
@@ -39,6 +40,7 @@ export function generateProfileSnapshot(
     bio: "",
   };
 
+  // Base Questions
   for (const q of questions) {
     const val = answers[q.key];
     if (val === undefined || val === null) continue;
@@ -51,6 +53,15 @@ export function generateProfileSnapshot(
       snapshot.answers[q.key] = val;
     } else {
       snapshot.answers[q.key] = val;
+    }
+  }
+
+  // Kiko Questions (they are scale 1-5, so put them in traits)
+  for (const q of KIKO_QUESTIONS) {
+    const val = answers[q.id];
+    if (val !== undefined && val !== null) {
+      snapshot.traits[q.id] = Number(val);
+      snapshot.answers[q.id] = String(val); // Optionally store in answers as well
     }
   }
 

@@ -17,8 +17,8 @@ export default function QuestionnairePage() {
     fetch("/api/questionnaire/state")
       .then((res) => {
         if (res.status === 401) {
-            router.push("/login");
-            throw new Error("Login required");
+          router.push("/login");
+          throw new Error("Login required");
         }
         return res.json();
       })
@@ -43,7 +43,7 @@ export default function QuestionnairePage() {
       const payload = Object.entries(answers).map(([k, v]) => {
         const q = QUESTIONS.find(q => q.key === k);
         if (q?.type === "multi") {
-            return { questionKey: k, values: v };
+          return { questionKey: k, values: v };
         }
         return { questionKey: k, value: String(v) };
       });
@@ -63,27 +63,16 @@ export default function QuestionnairePage() {
     }
   };
 
-  const handleSubmit = async () => {
-    if (!confirm("Confirm submit? You cannot change answers after submission.")) return;
+  const handleNext = async () => {
     setSubmitting(true);
     setError("");
     try {
-      // 1. Save first to ensure latest state
+      // 1. Save Base Info Draft
       await handleSave();
-      
-      // 2. Submit
-      const res = await fetch("/api/questionnaire/submit", { method: "POST" });
-      const json = await res.json();
-      if (!json.ok) throw new Error(json.error?.message || "Submit failed");
-      
-      // 3. Generate Profile
-      const pRes = await fetch("/api/profile/generate", { method: "POST" });
-      const pJson = await pRes.json();
-      if (!pJson.ok) throw new Error(pJson.error?.message || "Profile generation failed");
 
-      alert("Submitted & Profile Generated!");
-      setLocked(true);
-      router.push("/"); // Go to home
+      // 2. Redirect to Kiko Questionnaire instead of submitting
+      alert("基础信息已保存！接下来进入 Kiko 的量子纠缠测试 ✨");
+      router.push("/questionnaire/kiko");
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -93,11 +82,14 @@ export default function QuestionnairePage() {
 
   if (locked) {
     return (
-      <div className="p-8 text-center">
-        <h1 className="text-2xl font-bold">Questionnaire Submitted</h1>
-        <p className="mt-4">You have already completed the questionnaire.</p>
-        <button onClick={() => router.push("/")} className="mt-4 underline">
-          Go Home
+      <div className="p-8 text-center min-h-screen flex flex-col items-center justify-center">
+        <h1 className="text-2xl font-bold">基础信息已填写</h1>
+        <p className="mt-4 text-gray-500">但是好像你还没有完成 Kiko 测试哦？</p>
+        <button
+          onClick={() => router.push("/questionnaire/kiko")}
+          className="mt-6 px-6 py-2 bg-black text-white rounded-full font-bold shadow-md hover:bg-gray-800"
+        >
+          继续 Kiko 测试
         </button>
       </div>
     );
@@ -113,7 +105,7 @@ export default function QuestionnairePage() {
           <label className="block font-medium mb-2">
             {q.title} {q.required && <span className="text-red-500">*</span>}
           </label>
-          
+
           {q.type === "single" && (
             <div className="space-y-2">
               {q.options?.map((opt) => (
@@ -155,17 +147,17 @@ export default function QuestionnairePage() {
 
           {q.type === "scale" && (
             <div className="flex items-center space-x-4">
-               <span>{q.scale?.labels?.[0]}</span>
-               <input 
-                 type="range" 
-                 min={q.scale?.min} 
-                 max={q.scale?.max}
-                 value={answers[q.key] || q.scale?.min}
-                 onChange={(e) => handleChange(q.key, Number(e.target.value))}
-                 className="w-full"
-               />
-               <span>{q.scale?.labels?.[1]}</span>
-               <span className="font-bold ml-2">{answers[q.key]}</span>
+              <span>{q.scale?.labels?.[0]}</span>
+              <input
+                type="range"
+                min={q.scale?.min}
+                max={q.scale?.max}
+                value={answers[q.key] || q.scale?.min}
+                onChange={(e) => handleChange(q.key, Number(e.target.value))}
+                className="w-full"
+              />
+              <span>{q.scale?.labels?.[1]}</span>
+              <span className="font-bold ml-2">{answers[q.key]}</span>
             </div>
           )}
 
@@ -189,14 +181,14 @@ export default function QuestionnairePage() {
           {saving ? "Saving..." : "Save Draft"}
         </button>
         <button
-          onClick={handleSubmit}
+          onClick={handleNext}
           disabled={saving || submitting}
-          className="px-6 py-2 bg-black text-white rounded hover:bg-gray-800 disabled:opacity-50"
+          className="px-6 py-2 bg-gradient-to-r from-indigo-500 to-rose-400 text-white rounded-full font-bold shadow-md hover:opacity-90 disabled:opacity-50"
         >
-          {submitting ? "Submitting..." : "Submit"}
+          {submitting ? "正在保存..." : "下一步: Kiko 测试"}
         </button>
       </div>
-      <div className="h-20" /> 
+      <div className="h-20" />
     </div>
   );
 }
