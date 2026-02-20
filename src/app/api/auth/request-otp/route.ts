@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { requestOtp } from "@/lib/auth/otp";
+import { isSchoolEmail } from "@/lib/auth/otp";
 import { sendOtpEmail } from "@/lib/messaging/emailSender";
 import { apiSuccess, apiError } from "@/lib/utils/http";
 
@@ -12,6 +13,13 @@ export async function POST(req: NextRequest) {
       return apiError("VALIDATION_ERROR", "Email is required");
     }
 
+    // 1. DB 域名白名单校验（实时，管理员可动态开关）
+    const schoolCheck = await isSchoolEmail(email);
+    if (!schoolCheck.ok) {
+      return apiError("SCHOOL_NOT_ALLOWED", schoolCheck.error || "暂仅支持杭州首批试点学校邮箱", 400);
+    }
+
+    // 2. 生成并发送 OTP
     const result = await requestOtp(email);
 
     if (!result.sent) {
@@ -21,7 +29,6 @@ export async function POST(req: NextRequest) {
       return apiError("INVALID_REQUEST", result.error || "Failed to request OTP");
     }
 
-    // 发送邮件 (如果 requestOtp 返回了 code，说明生成成功)
     if (result.code) {
       await sendOtpEmail(email, result.code);
     }
@@ -32,3 +39,4 @@ export async function POST(req: NextRequest) {
     return apiError("INTERNAL_ERROR", "Something went wrong", 500);
   }
 }
+
