@@ -1,10 +1,16 @@
 import crypto from "crypto";
 import { Question } from "@/lib/questionnaire/questions";
+import { calculateKikoDimensions, checkKikoConsistency } from "@/lib/matching/kiko";
 
 export type ProfileSnapshot = {
   traits: Record<string, number>;
   answers: Record<string, string | string[]>;
   bio: string;
+  kikoDimensions?: Record<string, number>;
+  kikoFlags?: {
+    contradictions: number;
+    isValid: boolean;
+  };
 };
 
 // 稳定 Stringify (按 key 排序)
@@ -47,6 +53,14 @@ export function generateProfileSnapshot(
       snapshot.answers[q.key] = val;
     }
   }
+
+  // Inject Kiko processing over traits
+  const kikoCheck = checkKikoConsistency(snapshot.traits);
+  snapshot.kikoFlags = {
+    contradictions: kikoCheck.contradictionCount,
+    isValid: kikoCheck.isValid
+  };
+  snapshot.kikoDimensions = calculateKikoDimensions(snapshot.traits);
 
   const jsonStr = stableStringify(snapshot);
   const checksum = crypto.createHash("sha256").update(jsonStr).digest("hex");

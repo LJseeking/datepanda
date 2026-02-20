@@ -1,72 +1,72 @@
 import { ProfileSnapshot } from "@/lib/profile/generate";
 
 export type MatchResult = {
-  score: number;
-  reasons: string[];
+    score: number;
+    reasons: string[];
 };
 
 // 辅助：获取 single/text 答案
 function getSingle(snap: ProfileSnapshot, key: string): string | undefined {
-  const val = snap.answers[key];
-  if (Array.isArray(val)) return undefined; // Should be single
-  return val as string;
+    const val = snap.answers[key];
+    if (Array.isArray(val)) return undefined; // Should be single
+    return val as string;
 }
 
 // 辅助：获取 scale 答案
 function getScale(snap: ProfileSnapshot, key: string): number | undefined {
-  return snap.traits[key];
+    return snap.traits[key];
 }
 
 // 辅助：获取 multi 答案
 function getMulti(snap: ProfileSnapshot, key: string): string[] {
-  const val = snap.answers[key];
-  if (Array.isArray(val)) return val;
-  if (val) return [val as string];
-  return [];
+    const val = snap.answers[key];
+    if (Array.isArray(val)) return val;
+    if (val) return [val as string];
+    return [];
 }
 
 // A 桶：关系目标 (35分)
 function scoreSectionA(a: ProfileSnapshot, b: ProfileSnapshot): { score: number; reason?: string } {
-  let score = 0;
-  
-  // 1. 关系目标 (15分)
-  const goalA = getSingle(a, "relationship_goal");
-  const goalB = getSingle(b, "relationship_goal");
-  if (goalA && goalB) {
-    if (goalA === goalB) {
-        score += 15;
-    } else if (
-        (goalA === "serious" && goalB === "dating") || 
-        (goalA === "dating" && goalB === "serious") ||
-        (goalA === "friends_first" && goalB === "dating")
-    ) {
-        score += 8; // 部分兼容
+    let score = 0;
+
+    // 1. 关系目标 (15分)
+    const goalA = getSingle(a, "relationship_goal");
+    const goalB = getSingle(b, "relationship_goal");
+    if (goalA && goalB) {
+        if (goalA === goalB) {
+            score += 15;
+        } else if (
+            (goalA === "serious" && goalB === "dating") ||
+            (goalA === "dating" && goalB === "serious") ||
+            (goalA === "friends_first" && goalB === "dating")
+        ) {
+            score += 8; // 部分兼容
+        }
     }
-  }
 
-  // 2. 排他性 (10分)
-  const exclA = getSingle(a, "relationship_exclusivity");
-  const exclB = getSingle(b, "relationship_exclusivity");
-  if (exclA && exclB) {
-      if (exclA === exclB) score += 10;
-      else if (exclA === "open_to_discuss" || exclB === "open_to_discuss") score += 5;
-  }
+    // 2. 排他性 (10分)
+    const exclA = getSingle(a, "relationship_exclusivity");
+    const exclB = getSingle(b, "relationship_exclusivity");
+    if (exclA && exclB) {
+        if (exclA === exclB) score += 10;
+        else if (exclA === "open_to_discuss" || exclB === "open_to_discuss") score += 5;
+    }
 
-  // 3. 推进节奏 (10分)
-  const paceA = getSingle(a, "relationship_pace");
-  const paceB = getSingle(b, "relationship_pace");
-  if (paceA && paceB) {
-      if (paceA === paceB) score += 10;
-      else if ((paceA === "medium" && paceB !== "medium") || (paceB === "medium" && paceA !== "medium")) score += 5;
-  }
+    // 3. 推进节奏 (10分)
+    const paceA = getSingle(a, "relationship_pace");
+    const paceB = getSingle(b, "relationship_pace");
+    if (paceA && paceB) {
+        if (paceA === paceB) score += 10;
+        else if ((paceA === "medium" && paceB !== "medium") || (paceB === "medium" && paceA !== "medium")) score += 5;
+    }
 
-  return { score, reason: score >= 25 ? "关系目标与节奏高度一致" : undefined };
+    return { score, reason: score >= 25 ? "关系目标与节奏高度一致" : undefined };
 }
 
 // B 桶：生活习惯 (25分)
 function scoreSectionB(a: ProfileSnapshot, b: ProfileSnapshot): { score: number; reason?: string } {
     let score = 0;
-    
+
     // 1. 作息 (7分)
     const schA = getSingle(a, "lifestyle_schedule");
     const schB = getSingle(b, "lifestyle_schedule");
@@ -125,7 +125,7 @@ function scoreSectionC(a: ProfileSnapshot, b: ProfileSnapshot): { score: number;
 // D 桶：兴趣 (15分)
 function scoreSectionD(a: ProfileSnapshot, b: ProfileSnapshot): { score: number; reason?: string } {
     let score = 0;
-    
+
     // Topics + Date Style
     const topicsA = getMulti(a, "interest_topics");
     const topicsB = getMulti(b, "interest_topics");
@@ -134,7 +134,7 @@ function scoreSectionD(a: ProfileSnapshot, b: ProfileSnapshot): { score: number;
 
     const poolA = new Set([...topicsA, ...dateA]);
     const poolB = new Set([...topicsB, ...dateB]);
-    
+
     // Intersection
     let common = 0;
     const commonItems: string[] = [];
@@ -153,31 +153,62 @@ function scoreSectionD(a: ProfileSnapshot, b: ProfileSnapshot): { score: number;
     // For MVP reasons, we return a generic string if matched.
     // Ideally we pass `commonItems` out but type signature restricts.
     // Let's just return a generic reason if high score.
-    
+
     return { score, reason: score >= 9 ? "兴趣爱好与约会偏好重合度高" : undefined };
 }
 
+import { calculateKikoPairMatch, KikoDimensionScores } from "./kiko";
+
 export function calculateMatchScore(a: ProfileSnapshot, b: ProfileSnapshot): MatchResult {
-  const resA = scoreSectionA(a, b);
-  const resB = scoreSectionB(a, b);
-  const resC = scoreSectionC(a, b);
-  const resD = scoreSectionD(a, b);
+    // If either profile has too many contradictions, abort match (score 0)
+    if (a.kikoFlags && !a.kikoFlags.isValid) {
+        return { score: 0, reasons: ["对方的评测数据存在矛盾，暂无法匹配"] };
+    }
+    if (b.kikoFlags && !b.kikoFlags.isValid) {
+        return { score: 0, reasons: ["你的评测数据存在矛盾，暂无法匹配"] };
+    }
 
-  const totalScore = resA.score + resB.score + resC.score + resD.score;
-  const reasons: string[] = [];
-  
-  if (resA.reason) reasons.push(resA.reason);
-  if (resB.reason) reasons.push(resB.reason);
-  if (resC.reason) reasons.push(resC.reason);
-  if (resD.reason) reasons.push(resD.reason);
+    // Calculate Base Compatibility (Original 4 buckets, max 100)
+    const resA = scoreSectionA(a, b);
+    const resB = scoreSectionB(a, b);
+    const resC = scoreSectionC(a, b);
+    const resD = scoreSectionD(a, b);
 
-  // Fallback reason if score is high but no specific bucket dominated
-  if (totalScore >= 80 && reasons.length === 0) {
-      reasons.push("综合匹配度很高");
-  }
+    const baseScore = resA.score + resB.score + resC.score + resD.score;
+    const baseReasons: string[] = [];
 
-  return {
-      score: Math.min(100, totalScore), // Cap at 100
-      reasons: reasons.slice(0, 3) // Top 3
-  };
+    if (resA.reason) baseReasons.push(resA.reason);
+    if (resB.reason) baseReasons.push(resB.reason);
+    if (resC.reason) baseReasons.push(resC.reason);
+    if (resD.reason) baseReasons.push(resD.reason);
+
+    // If Kiko is available, blend it (70% Kiko, 30% Base)
+    if (a.kikoDimensions && b.kikoDimensions) {
+        const kikoMatch = calculateKikoPairMatch(
+            a.kikoDimensions as KikoDimensionScores,
+            b.kikoDimensions as KikoDimensionScores
+        );
+        const finalScore = Math.round(kikoMatch.score * 0.7 + baseScore * 0.3);
+
+        // Combine reasons (Kiko reasons are higher priority)
+        const allReasons = [...kikoMatch.reasons, ...baseReasons];
+        if (allReasons.length === 0 && finalScore >= 80) {
+            allReasons.push("你们在性格与价值观上有着奇妙的共鸣");
+        }
+
+        return {
+            score: Math.min(100, finalScore),
+            reasons: allReasons.slice(0, 3) // Top 3 reasons
+        };
+    }
+
+    // Fallback to pure base scoring (for users who haven't done Kiko yet)
+    if (baseScore >= 80 && baseReasons.length === 0) {
+        baseReasons.push("综合匹配度很高");
+    }
+
+    return {
+        score: Math.min(100, baseScore),
+        reasons: baseReasons.slice(0, 3)
+    };
 }
