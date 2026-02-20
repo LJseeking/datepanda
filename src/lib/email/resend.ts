@@ -30,7 +30,7 @@ export async function sendEmail({ to, subject, html, text, replyTo }: SendEmailO
             subject,
             html: html || '',
             text,
-            reply_to: replyTo,
+            replyTo: replyTo,
         });
 
         if (response.error) {
