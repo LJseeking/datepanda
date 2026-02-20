@@ -63,14 +63,11 @@ export default function MatchingPage() {
     if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
 
     if (!proposal) {
-        return (
-            <div className="p-8 text-center space-y-4">
-                <h1 className="text-2xl font-bold">No Match Yet</h1>
-                <p>Please wait for the next matching round (Thursday/Friday).</p>
-                <p className="text-sm text-gray-500">Make sure you have submitted your profile.</p>
-                <button onClick={() => router.push("/")} className="underline">Go Home</button>
-            </div>
-        );
+        // Redirect to the cinematic waiting page (countdown timer)
+        if (typeof window !== "undefined") {
+            router.replace("/matching/waiting");
+        }
+        return <div className="flex items-center justify-center min-h-screen text-gray-500">正在跳转...</div>;
     }
 
     const isPending = proposal.status === "PENDING";
