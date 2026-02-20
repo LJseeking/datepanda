@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import KikoRadar from "@/components/charts/KikoRadar";
 
 // Derive "Avatar Label" based on highest dimension
@@ -80,8 +81,8 @@ export default function ProfilePage() {
                 <div className="absolute -top-10 -right-10 w-32 h-32 bg-rose-100 rounded-full blur-2xl opacity-50 pointer-events-none"></div>
 
                 <div className="text-center space-y-1 relative z-10">
-                    <div className="w-20 h-20 bg-gradient-to-tr from-rose-400 to-indigo-500 rounded-full mx-auto flex items-center justify-center text-3xl shadow-lg border-4 border-white">
-                        🐼
+                    <div className="w-20 h-20 rounded-full mx-auto flex items-center justify-center shadow-lg border-4 border-white bg-white overflow-hidden">
+                        <Image src="/kiko-avatar.svg" alt="Avatar" width={80} height={80} className="object-cover" />
                     </div>
                     <h2 className="text-xl font-bold mt-2 text-gray-800">
                         {profileData.answers?.open_text_self_intro || "神秘用户"}

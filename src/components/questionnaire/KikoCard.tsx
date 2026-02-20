@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
+import Image from 'next/image';
 import { KikoQuestion } from "@/lib/questionnaire/kikoQuestions";
 
 interface KikoCardProps {
@@ -44,9 +45,11 @@ export default function KikoCard({ question, onAnswer, kikoMessage }: KikoCardPr
                     transition={{ type: "spring", bounce: 0.5 }}
                     className="relative"
                 >
-                    {/* Kiko Avatar (Placeholder with emoji for MVP, can be replaced with an image) */}
-                    <div className="w-24 h-24 bg-black rounded-full flex items-center justify-center shadow-lg border-4 border-white z-10 relative">
-                        <span className="text-5xl">🐼</span>
+                    {/* Kiko Avatar */}
+                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-10 animate-bounce-slow">
+                        <div className="w-20 h-20 rounded-full bg-white shadow-lg overflow-hidden border-4 border-white flex items-center justify-center">
+                            <Image src="/kiko-avatar.svg" alt="Kiko" width={80} height={80} className="object-cover" />
+                        </div>
                     </div>
 
                     {/* Chat Bubble */}

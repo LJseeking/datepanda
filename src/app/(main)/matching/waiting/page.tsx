@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 // Matching drops every Thursday 20:00 CST and Friday (2nd chance) 20:00 CST
 function getNextMatchDropTime(): { date: Date; round: "THU" | "FRI" } {
@@ -134,10 +135,10 @@ export default function WaitingPage() {
             {/* ============ Kiko Avatar Pulse ============ */}
             <div className="relative z-10 mb-10">
                 <div
-                    className="w-28 h-28 rounded-full bg-gradient-to-br from-rose-500 to-indigo-600 flex items-center justify-center text-5xl shadow-2xl"
+                    className="w-28 h-28 rounded-full shadow-2xl overflow-hidden bg-white border-4 border-white flex items-center justify-center relative"
                     style={{ animation: "heartbeat 1.8s ease-in-out infinite" }}
                 >
-                    🐼
+                    <Image src="/kiko-avatar.svg" alt="Kiko" width={112} height={112} className="object-cover" />
                 </div>
                 {/* Glow rings */}
                 <div className="absolute inset-0 rounded-full bg-rose-500/20 scale-125 animate-ping pointer-events-none" />
