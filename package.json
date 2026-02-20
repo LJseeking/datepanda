@@ -10,7 +10,8 @@
     "postinstall": "prisma generate",
     "migrate:deploy": "DATABASE_URL=$DATABASE_URL_UNPOOLED prisma migrate deploy",
     "scripts:build": "tsc scripts/backfill-proposer.ts scripts/_prisma.ts --outDir dist-scripts --rootDir . --module commonjs --esModuleInterop --skipLibCheck",
-    "scripts:backfill:proposer": "node -r dotenv/config dist-scripts/scripts/backfill-proposer.js"
+    "scripts:backfill:proposer": "node -r dotenv/config dist-scripts/scripts/backfill-proposer.js",
+    "seed": "npx tsx prisma/seed.ts"
   },
   "engines": {
     "node": ">=20"

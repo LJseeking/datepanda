@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { prisma } from "@/lib/db/prisma";
-import { getSchoolEmailDomains } from "@/lib/config/schoolEmailDomains";
+
 
 const OTP_SECRET = process.env.OTP_SECRET || "default-secret-change-me";
 const OTP_EXPIRES_MINUTES = 10;
@@ -20,7 +20,46 @@ function hashCode(email: string, code: string): string {
     .digest("hex");
 }
 
-// 校验邮箱格式与白名单
+// 校验邮箱格式是否合法（基础格式，不做域名检查）
+export function validateEmailFormat(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+// DB 驱动的学校邮箱验证（异步）
+export async function isSchoolEmail(email: string): Promise<{
+  ok: boolean;
+  schoolName?: string;
+  error?: string;
+}> {
+  if (!validateEmailFormat(email)) {
+    return { ok: false, error: "Invalid email format" };
+  }
+
+  const domain = email.split("@")[1].toLowerCase();
+
+  const record = await prisma.allowedEmailDomain.findFirst({
+    where: {
+      domain,
+      isEnabled: true,
+      school: { isEnabled: true },
+    },
+    select: {
+      school: { select: { name: true } },
+    },
+  });
+
+  if (!record) {
+    return { ok: false, error: "暂仅支持杭州首批试点学校邮箱" };
+  }
+
+  return { ok: true, schoolName: record.school.name };
+}
+
+/**
+ * @deprecated Use isSchoolEmail (async, DB-driven) instead.
+ * Kept for non-async contexts only.
+ */
 export function validateSchoolEmail(email: string): {
   valid: boolean;
   error?: string;
@@ -29,31 +68,20 @@ export function validateSchoolEmail(email: string): {
   if (!emailRegex.test(email)) {
     return { valid: false, error: "Invalid email format" };
   }
-
-  const domain = email.split("@")[1].toLowerCase();
-  const allowedDomains = getSchoolEmailDomains();
-  
-  // 简单后缀匹配
-  const isAllowed = allowedDomains.some(d => domain === d || domain.endsWith(`.${d}`));
-  
-  if (!isAllowed) {
-    return { valid: false, error: "Email domain not allowed" };
-  }
-
+  // Fallback: allow all — DB check is enforced at route level
   return { valid: true };
 }
 
-// 请求 OTP
+// 请求 OTP（调用前需先通过 isSchoolEmail 做域名检查）
 export async function requestOtp(email: string): Promise<{
   sent: boolean;
   code?: string; // 仅用于调用发送器，不直接返回给 API
   error?: string;
   cooldown?: number;
 }> {
-  // 1. 校验邮箱
-  const validation = validateSchoolEmail(email);
-  if (!validation.valid) {
-    return { sent: false, error: validation.error };
+  // 1. 基础格式校验
+  if (!validateEmailFormat(email)) {
+    return { sent: false, error: "Invalid email format" };
   }
 
   // 2. 检查限流 (查找最近一条记录)

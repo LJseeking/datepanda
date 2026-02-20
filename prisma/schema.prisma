@@ -107,11 +107,30 @@ model User {
 }
 
 model School {
-  id       String @id @default(cuid())
-  cityCode String
-  name     String
-  
+  id        String   @id @default(cuid())
+  cityCode  String
+  name      String
+  isEnabled Boolean  @default(true)
+
   verifications SchoolVerification[]
+  domains       AllowedEmailDomain[]
+
+  @@unique([name])
+}
+
+model AllowedEmailDomain {
+  id        String   @id @default(cuid())
+  domain    String   @unique
+  schoolId  String
+  emailType String   @default("student") // "student" | "staff"
+  isEnabled Boolean  @default(true)
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([domain, isEnabled])
 }
 
 model SchoolVerification {
