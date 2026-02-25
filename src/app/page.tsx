@@ -34,10 +34,11 @@ export default function Home() {
             <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-slate-900 dark:text-white bg-clip-text text-transparent bg-gradient-to-br from-slate-900 via-slate-800 to-slate-500 dark:from-white dark:via-slate-200 dark:to-slate-400">
               DatePanda
             </h1>
-            <p className="text-xl sm:text-2xl font-medium text-slate-600 dark:text-slate-300 max-w-xl mx-auto leading-relaxed">
-              在大学校园里，<br className="hidden sm:block" />
-              遇见对的那个人 <span className="text-emerald-500 font-semibold opacity-90">（杭州内测版）</span>
-            </p>
+            <div className="text-xl sm:text-2xl font-medium text-slate-600 dark:text-slate-300 max-w-xl mx-auto leading-relaxed flex flex-col gap-1">
+              <span>在大学校园里</span>
+              <span>遇见三观一致的那个人</span>
+              <span className="text-emerald-500 font-semibold opacity-90 text-lg mt-1">（杭州内测版）</span>
+            </div>
           </div>
 
           <div className="pt-4 flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
