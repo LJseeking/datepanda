@@ -16,7 +16,16 @@ export async function POST(req: NextRequest) {
             return apiError("VALIDATION_ERROR", "Email and code are required");
         }
 
-        const isValid = await verifyOtp(email, code);
+        // 内测账号后门验证
+        const isTest = email.endsWith("@datepanda.fun") && email.startsWith("test");
+        let isValid = false;
+
+        if (isTest && code === "000000") {
+            isValid = true;
+        } else {
+            isValid = await verifyOtp(email, code);
+        }
+
         if (!isValid) {
             return apiError("INVALID_OTP", "Invalid or expired OTP", 401);
         }

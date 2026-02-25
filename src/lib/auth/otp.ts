@@ -36,6 +36,11 @@ export async function isSchoolEmail(email: string): Promise<{
     return { ok: false, error: "Invalid email format" };
   }
 
+  // 内测账号后门 (test01@datepanda.fun -> test99@datepanda.fun)
+  if (email.endsWith("@datepanda.fun") && email.startsWith("test")) {
+    return { ok: true, schoolName: "DatePanda Internal Testing" };
+  }
+
   const domain = email.split("@")[1].toLowerCase();
 
   const record = await prisma.allowedEmailDomain.findFirst({

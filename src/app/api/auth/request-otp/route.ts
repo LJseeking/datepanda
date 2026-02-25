@@ -19,6 +19,11 @@ export async function POST(req: NextRequest) {
       return apiError("SCHOOL_NOT_ALLOWED", schoolCheck.error || "暂仅支持杭州首批试点学校邮箱", 400);
     }
 
+    // 内测账号后门 (直接返回成功，不发邮件)
+    if (email.endsWith("@datepanda.fun") && email.startsWith("test")) {
+      return apiSuccess({ message: "Test account bypass: use OTP 000000" });
+    }
+
     // 2. 生成并发送 OTP
     const result = await requestOtp(email);
 
