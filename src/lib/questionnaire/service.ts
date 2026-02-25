@@ -8,6 +8,16 @@ import {
 } from "./utils";
 import { apiError } from "@/lib/utils/http";
 
+class ServiceError extends Error {
+  code: string;
+  status: number;
+  constructor(code: string, message: string, status = 400) {
+    super(message);
+    this.code = code;
+    this.status = status;
+  }
+}
+
 export type AnswerInput = {
   questionKey: string;
   value?: string;
@@ -53,7 +63,7 @@ export async function upsertDraftAnswers(userId: string, answers: AnswerInput[])
   // 1. Validate Payload
   for (const ans of answers) {
     if (!isValidQuestionKey(ans.questionKey)) {
-      throw apiError("INVALID_QUESTION_KEY", `Unknown question: ${ans.questionKey}`);
+      throw new ServiceError("INVALID_QUESTION_KEY", `Unknown question: ${ans.questionKey}`);
     }
     const q = questionMap.get(ans.questionKey)!;
 
@@ -64,7 +74,7 @@ export async function upsertDraftAnswers(userId: string, answers: AnswerInput[])
 
     const validation = validateAnswer(q, val);
     if (!validation.ok) {
-      throw apiError(validation.code || "INVALID_ANSWER", validation.message || "Invalid answer");
+      throw new ServiceError(validation.code || "INVALID_ANSWER", validation.message || "Invalid answer");
     }
   }
 
@@ -76,35 +86,37 @@ export async function upsertDraftAnswers(userId: string, answers: AnswerInput[])
     });
 
     if (state?.submittedResponseId) {
-      throw apiError("QUESTIONNAIRE_LOCKED", "Questionnaire already submitted", 409);
+      throw new ServiceError("QUESTIONNAIRE_LOCKED", "Questionnaire already submitted", 409);
     }
 
     const response = await getOrCreateResponse(tx, userId, versionId);
 
+    // Fast path: Pre-fetch all available questions
+    const questionKeys = answers.map(a => a.questionKey);
+    const existingQuestions = await tx.question.findMany({ where: { code: { in: questionKeys } } });
+    const questionMapDb = new Map(existingQuestions.map(q => [q.code, q.id]));
+
+    // Fast path: Create missing questions sequentially (usually only happens once)
+    for (const key of questionKeys) {
+      if (!questionMapDb.has(key)) {
+        const newRecord = await tx.question.create({ data: { code: key } });
+        questionMapDb.set(key, newRecord.id);
+      }
+    }
+
+    // Prepare batch operations
+    const itemUpsertPromises = [];
+    const missingOptionDefs: { id: string, questionId: string }[] = [];
+    const responseItemOptionsData: { responseId: string, questionId: string, optionId: string }[] = [];
+    const questionIdsToClearOptions = new Set<string>();
+
     for (const ans of answers) {
       const q = questionMap.get(ans.questionKey)!;
-
-      // Upsert ResponseItem
-      // Note: We use questionKey as questionId for now since schema uses String ID
-      // In real world, Question table should exist. Here we assume questionKey IS the ID or we map it.
-      // Schema: ResponseItem (responseId, questionId) unique
-      // We need to map questionKey -> questionId. 
-      // MVP simplification: We assume Question table is NOT populated or we insert on fly?
-      // Based on schema, ResponseItem has relation to Question.
-      // So we MUST have Question records.
-      // Fix: We need to ensure Question records exist for keys.
-      // For MVP, let's assume we create them if missing or seed them.
-      // Let's upsert Question first to be safe (or assume seeded).
-      // Optimization: In real prod, Questions are seeded. Here we lazy create.
-
-      let questionRecord = await tx.question.findFirst({ where: { code: ans.questionKey } });
-      if (!questionRecord) {
-        questionRecord = await tx.question.create({ data: { code: ans.questionKey } });
-      }
+      const questionId = questionMapDb.get(ans.questionKey)!;
 
       const itemData: any = {
         responseId: response.id,
-        questionId: questionRecord.id,
+        questionId: questionId,
       };
 
       if (q.type === "scale") {
@@ -113,75 +125,55 @@ export async function upsertDraftAnswers(userId: string, answers: AnswerInput[])
         itemData.textValue = ans.value;
       }
 
-      // Upsert Item
-      const item = await tx.responseItem.upsert({
-        where: {
-          responseId_questionId: { responseId: response.id, questionId: questionRecord.id },
-        },
-        create: itemData,
-        update: itemData,
-      });
+      itemUpsertPromises.push(
+        tx.responseItem.upsert({
+          where: { responseId_questionId: { responseId: response.id, questionId: questionId } },
+          create: itemData,
+          update: itemData,
+        })
+      );
 
       // Handle Multi Options
       if (q.type === "multi" && ans.values) {
-        // Clear old options
-        // Schema: ResponseItemOption (responseId, questionId, optionId) unique
-        await tx.responseItemOption.deleteMany({
-          where: {
-            responseId: response.id,
-            questionId: questionRecord.id,
-          }
-        });
+        questionIdsToClearOptions.add(questionId);
 
-        // Insert new options
-        // Need Option records too
         for (const val of ans.values) {
-          // Lazy create Option record
-          // Option schema: id, questionId, question (relation)
-          // It seems Option doesn't have a 'code' or 'value' field in the schema provided previously?
-          // Let's check Schema... 
-          // Model Option { id, questionId } ... Wait, where is the value?
-          // Ah, I need to check schema again. If Option is just ID, we can't store value.
-          // Assuming Option has 'id' and we just link it.
-          // But we need to know WHICH option it is.
-          // Let's assume for MVP we just created Option records blindly or we need to fix Schema/Code.
-          // Re-reading Schema provided in previous turn:
-          // model Option { id, questionId, question @relation... } -> It has NO value/code field!
-          // This is a schema gap. But I cannot change schema now easily without migration.
-          // Wait, ResponseItemOption links to Option.
-          // If Option table is empty, we can't link.
-          // WORKAROUND for MVP without changing schema:
-          // We use `responseItem.textValue` to store multi values as JSON string? No, requirement says use relation.
-          // Let's assume Option has `id` and we use the `val` (string) as the ID if it's a CUID, or we map it?
-          // Actually, for a real questionnaire, Options are static data.
-          // If I can't change schema, I will skip creating Option record and just not link it? No, FK constraint.
-          // I MUST have an Option record.
-          // Let's assume I can create an Option with just ID.
-          // I will use a deterministic ID generation or lookup?
-          // Since I can't add fields to Option, I will create Option if not exists, but I can't store the 'value' label.
-          // This makes Option table useless for retrieval unless ID = value.
-          // Let's try to use the `val` (e.g. "coffee") as the Option ID if it fits?
-          // Option.id is String @default(cuid()).
-          // I can override ID on create.
-
-          const optionId = `${questionRecord.id}_${val}`; // Composite ID to be unique and deterministic
-
-          // Try find or create with specific ID
-          let optionRecord = await tx.option.findUnique({ where: { id: optionId } });
-          if (!optionRecord) {
-            optionRecord = await tx.option.create({
-              data: { id: optionId, questionId: questionRecord.id }
-            });
-          }
-
-          await tx.responseItemOption.create({
-            data: {
-              responseId: response.id,
-              questionId: questionRecord.id,
-              optionId: optionRecord.id,
-            }
+          const optionId = `${questionId}_${val}`;
+          missingOptionDefs.push({ id: optionId, questionId: questionId });
+          responseItemOptionsData.push({
+            responseId: response.id,
+            questionId: questionId,
+            optionId: optionId,
           });
         }
+      }
+    }
+
+    // Execute ResponseItem upserts in parallel (Prisma supports this if not conflicting)
+    await Promise.all(itemUpsertPromises);
+
+    // Multi-select bulk inserts
+    if (questionIdsToClearOptions.size > 0) {
+      await tx.responseItemOption.deleteMany({
+        where: {
+          responseId: response.id,
+          questionId: { in: Array.from(questionIdsToClearOptions) }
+        }
+      });
+
+      // Lazy bulk insert of Option definitions (skipDuplicates avoids conflict)
+      if (missingOptionDefs.length > 0) {
+        await tx.option.createMany({
+          data: missingOptionDefs,
+          skipDuplicates: true,
+        });
+      }
+
+      // Bulk insert of the selected options
+      if (responseItemOptionsData.length > 0) {
+        await tx.responseItemOption.createMany({
+          data: responseItemOptionsData,
+        });
       }
     }
 
@@ -211,7 +203,7 @@ export async function submitQuestionnaire(userId: string) {
     }
 
     if (!response) {
-      throw apiError("NO_DRAFT", "No in-progress questionnaire found", 400);
+      throw new ServiceError("NO_DRAFT", "No in-progress questionnaire found", 400);
     }
 
     // 2. Validate All Required Questions Answered
@@ -244,7 +236,7 @@ export async function submitQuestionnaire(userId: string) {
 
     const missing = requiredKeys.filter(k => !answeredKeys.has(k));
     if (missing.length > 0) {
-      throw apiError("MISSING_REQUIRED", `Missing answers for: ${missing.join(", ")}`, 400);
+      throw new ServiceError("MISSING_REQUIRED", `Missing answers for: ${missing.join(", ")}`, 400);
     }
 
     // 3. Lock & Update
