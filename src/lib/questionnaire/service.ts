@@ -186,6 +186,9 @@ export async function upsertDraftAnswers(userId: string, answers: AnswerInput[])
     }
 
     return { responseId: response.id };
+  }, {
+    maxWait: 5000,
+    timeout: 20000, // 20 seconds to accommodate remote DB latency
   });
 }
 
@@ -267,6 +270,9 @@ export async function submitQuestionnaire(userId: string) {
     });
 
     return { submittedAt: now };
+  }, {
+    maxWait: 5000,
+    timeout: 20000,
   });
 }
 
