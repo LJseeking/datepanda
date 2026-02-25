@@ -48,7 +48,16 @@ export default function LoginPage() {
       .then((res) => res.json())
       .then((json) => {
         if (json.ok && json.data.schools) {
-          setSchools(json.data.schools);
+          const fetchedSchools = json.data.schools;
+
+          // Inject internal testing school to allow test accounts
+          fetchedSchools.push({
+            id: "test-school-bypass",
+            name: "🐼 内测专用通道 (DatePanda)",
+            domains: ["datepanda.fun"],
+          });
+
+          setSchools(fetchedSchools);
         }
       })
       .catch((e) => console.error("Failed to load schools", e))
