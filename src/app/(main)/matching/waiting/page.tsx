@@ -146,12 +146,13 @@ export default function WaitingPage() {
             </div>
 
             {/* ============ TITLE ============ */}
-            <h1 className="text-3xl font-extrabold tracking-tight mb-2 relative z-10 text-center">
-                匹配结果
-                <span className="text-rose-400"> 即将揭晓</span>
+            <h1 className="text-3xl font-extrabold tracking-tight mb-4 relative z-10 text-center px-4">
+                信号发射中
+                <br />
+                <span className="text-rose-400 leading-relaxed">等待宇宙的回音</span>
             </h1>
-            <p className="text-gray-400 text-sm mb-10 relative z-10">
-                Kiko 正在宇宙中努力为你配对……
+            <p className="text-gray-400 text-sm mb-10 relative z-10 max-w-[280px] text-center mx-auto leading-relaxed">
+                Kiko 正在努力为你匹配同频的灵魂。如果上轮暂未遇到合适的人，我们正在为你扩大搜索半径。
             </p>
 
             {/* ============ COUNTDOWN ============ */}

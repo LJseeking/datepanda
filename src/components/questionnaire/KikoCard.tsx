@@ -38,43 +38,45 @@ export default function KikoCard({ question, onAnswer, kikoMessage }: KikoCardPr
         <div className="flex flex-col h-full w-full max-w-md mx-auto justify-between px-4 pb-8">
 
             {/* Top Section: Kiko Avatar & Chat Bubble */}
-            <div className="flex-1 flex flex-col items-center justify-center mt-8">
+            <div className="flex-1 flex flex-col items-center justify-center mt-4 mb-6 w-full min-h-[220px]">
                 <motion.div
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ type: "spring", bounce: 0.5 }}
-                    className="relative"
+                    className="flex flex-col items-center w-full"
                 >
                     {/* Kiko Avatar */}
-                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-10 animate-bounce-slow">
+                    <div className="z-10 animate-bounce-slow mb-6">
                         <div className="w-20 h-20 rounded-full bg-white shadow-lg overflow-hidden border-4 border-white flex items-center justify-center">
                             <Image src="/kiko-avatar.svg" alt="Kiko" width={80} height={80} className="object-cover" />
                         </div>
                     </div>
 
                     {/* Chat Bubble */}
-                    <AnimatePresence mode="wait">
-                        <motion.div
-                            key={question ? question.id : kikoMessage}
-                            initial={{ opacity: 0, y: 20, scale: 0.9 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: -20, scale: 0.9 }}
-                            transition={{ duration: 0.3, type: "spring" }}
-                            className="absolute top-28 left-1/2 -translate-x-1/2 w-[280px] bg-white p-5 rounded-3xl rounded-tl-none shadow-xl border border-gray-100 z-20"
-                        >
-                            {/* Little tail pointing to Panda */}
-                            <div className="absolute -top-3 left-6 w-6 h-6 bg-white rotate-45 border-l border-t border-gray-100 z-[-1]" />
+                    <div className="relative w-full flex justify-center">
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={question ? question.id : kikoMessage}
+                                initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: -20, scale: 0.9 }}
+                                transition={{ duration: 0.3, type: "spring" }}
+                                className="relative w-11/12 max-w-[320px] bg-white p-5 rounded-3xl rounded-tl-none shadow-xl border border-gray-100 z-20"
+                            >
+                                {/* Little tail pointing to Panda */}
+                                <div className="absolute -top-3 left-8 w-6 h-6 bg-white rotate-45 border-l border-t border-gray-100 z-[-1]" />
 
-                            <p className="text-gray-800 text-lg font-medium leading-relaxed">
-                                {kikoMessage || question?.kikoText}
-                            </p>
-                        </motion.div>
-                    </AnimatePresence>
+                                <p className="text-gray-800 text-base sm:text-lg font-medium leading-relaxed">
+                                    {kikoMessage || question?.kikoText}
+                                </p>
+                            </motion.div>
+                        </AnimatePresence>
+                    </div>
                 </motion.div>
             </div>
 
             {/* Bottom Section: 5 Jelly Buttons */}
-            <div className="w-full mt-auto pt-48 space-y-3">
+            <div className="w-full mt-auto space-y-3 shrink-0">
                 {question && !kikoMessage ? (
                     <div className="grid grid-cols-1 gap-3">
                         {OPTIONS.map((opt) => (

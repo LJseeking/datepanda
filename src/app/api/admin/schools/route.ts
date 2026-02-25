@@ -25,13 +25,14 @@ export async function POST(req: NextRequest) {
     return apiSuccess(school);
 }
 
-// PATCH /api/admin/schools/[id] — toggle school isEnabled
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+// PATCH /api/admin/schools — toggle school isEnabled
+export async function PATCH(req: NextRequest) {
     if (!checkAuth(req)) return apiError("UNAUTHORIZED", "Forbidden", 401);
 
-    const { id } = await (params as any);
     const body = await req.json();
-    const { isEnabled } = body;
+    const { id, isEnabled } = body;
+
+    if (!id) return apiError("VALIDATION_ERROR", "id is required");
 
     const updated = await prisma.school.update({
         where: { id },

@@ -77,9 +77,13 @@ model User {
   id        String   @id @default(cuid())
   status    String   @default("ACTIVE") // Consider enum if simple, but String allows custom
   deletedAt DateTime?
+  lastActiveAt DateTime @default(now())
   
   cityCode  String?
   schoolId  String?
+
+  avatarUrl       String?
+  photoVisibility String   @default("MATCHED_ONLY") // "MATCHED_ONLY" | "PUBLIC" | "HIDDEN"
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

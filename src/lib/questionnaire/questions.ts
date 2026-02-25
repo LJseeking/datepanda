@@ -67,6 +67,9 @@ export const QUESTIONS: readonly Question[] = [
       { value: "hdu", label: "杭州电子科技大学" },
       { value: "zjut", label: "浙江工业大学" },
       { value: "zafu", label: "浙江农林大学" },
+      { value: "caa", label: "中国美术学院" },
+      { value: "cuz", label: "浙江传媒学院" },
+      { value: "zjcm", label: "浙江音乐学院" },
       { value: "zju_city", label: "浙大城市学院/其他在杭院校" },
       { value: "other", label: "其他（在杭）" },
     ],
@@ -375,7 +378,7 @@ export const QUESTIONS: readonly Question[] = [
     required: false,
     options: [
       { value: "words", label: "语言表达最重要" },
-      { value: "actions", label: "行动改变最重要" } ,
+      { value: "actions", label: "行动改变最重要" },
       { value: "both", label: "两者都重要" },
       { value: "not_important", label: "不太在意道歉形式" },
     ],
