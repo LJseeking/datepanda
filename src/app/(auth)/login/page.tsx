@@ -125,7 +125,7 @@ export default function LoginPage() {
         throw new Error(data.error?.message || "验证失败");
       }
 
-      router.push("/");
+      router.push("/profile");
     } catch (err: any) {
       setError(err.message);
     } finally {
