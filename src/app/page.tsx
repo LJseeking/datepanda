@@ -1,97 +1,112 @@
-import { ArrowRight, Leaf, Sparkles, UserCircle } from "lucide-react";
+import { ArrowRight, Sparkles, ShieldCheck, HeartHandshake, GraduationCap, Bot } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default function Home() {
   return (
-    <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-gradient-to-b from-emerald-50/50 to-white dark:from-slate-900 dark:to-slate-950 font-sans px-4 sm:px-6 relative overflow-hidden">
+    <div className="flex min-h-[100dvh] flex-col bg-slate-50 dark:bg-slate-950 font-sans relative overflow-x-hidden selection:bg-emerald-200 selection:text-emerald-900">
 
-      {/* Decorative Background Elements */}
-      <div className="absolute top-0 w-full h-[50dvh] bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] -z-10 opacity-20" />
-      <div className="absolute top-20 right-10 md:top-32 md:right-32 w-64 h-64 bg-emerald-200/30 rounded-full blur-3xl -z-10" />
-      <div className="absolute bottom-20 left-10 md:bottom-32 md:left-32 w-64 h-64 bg-rose-200/30 rounded-full blur-3xl -z-10" />
+      {/* Dynamic Background */}
+      <div className="absolute top-0 w-full h-[70dvh] bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] inset-0 z-0 opacity-20 pointer-events-none" />
+      <div className="absolute top-[-10%] -left-[10%] w-[50vw] h-[50vw] bg-emerald-300/20 rounded-full blur-[100px] z-0 animate-pulse duration-10000 pointer-events-none" />
+      <div className="absolute top-[20%] -right-[10%] w-[40vw] h-[40vw] bg-rose-300/20 rounded-full blur-[100px] z-0 animate-pulse duration-7000 pointer-events-none" />
 
-      <main className="flex w-full max-w-xl flex-col items-center justify-center text-center space-y-10 py-16 z-10">
+      {/* Main Content Container */}
+      <main className="flex-1 flex flex-col items-center pt-20 pb-16 px-4 sm:px-6 relative z-10 w-full max-w-6xl mx-auto">
 
-        {/* App Logo / Brand */}
-        <div className="space-y-4">
-          <div className="mx-auto w-24 h-24 bg-white dark:bg-slate-800 rounded-[2rem] shadow-sm border border-emerald-100 dark:border-slate-700 flex items-center justify-center mb-6 relative overflow-hidden">
-            <Image
-              src="/brand/panda-logo-v2.png"
-              alt="DatePanda Logo"
-              width={96}
-              height={96}
-              className="object-cover"
-              priority
-            />
+        {/* Header / Hero Section */}
+        <section className="text-center w-full max-w-3xl flex flex-col items-center justify-center space-y-8 mt-8 sm:mt-16 animate-in slide-in-from-bottom-8 fade-in duration-1000">
+          <div className="relative group">
+            <div className="absolute -inset-1 bg-gradient-to-r from-emerald-400 to-rose-400 rounded-[2.5rem] blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+            <div className="relative w-28 h-28 sm:w-32 sm:h-32 bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl border border-white/50 dark:border-slate-800 flex items-center justify-center overflow-hidden transition-transform duration-500 hover:scale-105">
+              <Image
+                src="/brand/panda-logo-v2.png"
+                alt="DatePanda Logo"
+                fill
+                className="object-cover p-2"
+                priority
+              />
+            </div>
           </div>
-          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-            DatePanda
-          </h1>
-          <p className="text-lg sm:text-xl text-slate-500 dark:text-slate-400 max-w-sm mx-auto leading-relaxed">
-            在杭州校园里，遇见聊得来的人
-          </p>
-        </div>
 
-        {/* Action Cards */}
-        <div className="w-full flex flex-col gap-4 mt-8">
+          <div className="space-y-4">
+            <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-slate-900 dark:text-white bg-clip-text text-transparent bg-gradient-to-br from-slate-900 via-slate-800 to-slate-500 dark:from-white dark:via-slate-200 dark:to-slate-400">
+              DatePanda
+            </h1>
+            <p className="text-xl sm:text-2xl font-medium text-slate-600 dark:text-slate-300 max-w-xl mx-auto leading-relaxed">
+              在大学校园里，<br className="hidden sm:block" />
+              遇见对的那个人 <span className="text-emerald-500 font-semibold opacity-90">（杭州内测版）</span>
+            </p>
+          </div>
 
-          <Link
-            href="/questionnaire"
-            className="group relative flex items-center justify-between p-5 rounded-2xl bg-emerald-500 text-white shadow-md shadow-emerald-500/20 transition-all hover:scale-[1.02] hover:shadow-lg hover:shadow-emerald-500/30 active:scale-[0.98]"
-          >
-            <div className="flex items-center gap-4">
-              <div className="bg-white/20 p-2.5 rounded-xl">
-                <Sparkles className="w-6 h-6 text-white" />
-              </div>
-              <div className="text-left">
-                <h3 className="text-lg font-bold">进入 Kiko 测试</h3>
-                <p className="text-emerald-50 text-sm mt-0.5">用 3 分钟了解你适合谁</p>
-              </div>
+          <div className="pt-4 flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+            <Link href="/login" className="w-full sm:w-auto">
+              <Button size="lg" className="w-full sm:w-auto h-14 px-8 text-lg rounded-full bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/25 transition-all hover:scale-105 hover:shadow-emerald-500/40 font-semibold gap-2 border-none">
+                <Sparkles className="w-5 h-5" />
+                开启校园奇遇 (登录/注册)
+              </Button>
+            </Link>
+          </div>
+        </section>
+
+        {/* Value Proposition Cards (Glassmorphism) */}
+        <section className="w-full grid border-none grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-24 mb-12 animate-in slide-in-from-bottom-12 fade-in duration-1000 delay-300 fill-mode-both">
+
+          {/* Feature 1 */}
+          <div className="group relative rounded-3xl p-8 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border border-white/60 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none hover:-translate-y-2 transition-all duration-300">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center mb-6 shadow-inner text-white group-hover:scale-110 transition-transform">
+              <GraduationCap className="w-7 h-7" />
             </div>
-            <ArrowRight className="w-5 h-5 text-emerald-100 group-hover:translate-x-1 transition-transform" />
-          </Link>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">专属真实校园</h3>
+            <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+              严格的教育邮箱认证体系，专为杭州首批高校学子打造的纯粹净土。没有杂音，只有真实的同学。
+            </p>
+          </div>
 
-          <Link
-            href="/matching"
-            className="group relative flex items-center justify-between p-5 rounded-2xl bg-white border border-rose-100 shadow-sm transition-all hover:border-rose-300 hover:shadow-md active:scale-[0.98] dark:bg-slate-800 dark:border-slate-700"
-          >
-            <div className="flex items-center gap-4">
-              <div className="bg-rose-50 p-2.5 rounded-xl dark:bg-rose-900/30">
-                <Leaf className="w-6 h-6 text-rose-500" />
-              </div>
-              <div className="text-left text-slate-800 dark:text-slate-100">
-                <h3 className="text-lg font-bold">本周心动瞬间</h3>
-                <p className="text-slate-500 text-sm mt-0.5 dark:text-slate-400">看看谁对你发来小信号</p>
-              </div>
+          {/* Feature 2 */}
+          <div className="group relative rounded-3xl p-8 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border border-white/60 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none hover:-translate-y-2 transition-all duration-300 delay-100">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center mb-6 shadow-inner text-white group-hover:scale-110 transition-transform">
+              <HeartHandshake className="w-7 h-7" />
             </div>
-            <ArrowRight className="w-5 h-5 text-slate-400 group-hover:translate-x-1 transition-transform" />
-          </Link>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">Kiko 灵魂共振</h3>
+            <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+              告别“看脸左滑右滑”。首创深度心理学画像体系，每天为你精准推送在精神世界同频共振的人。
+            </p>
+          </div>
 
-          <Link
-            href="/profile"
-            className="group relative flex items-center justify-between p-5 rounded-2xl bg-white border border-slate-200 shadow-sm transition-all hover:border-slate-300 hover:shadow-md active:scale-[0.98] dark:bg-slate-800 dark:border-slate-700"
-          >
-            <div className="flex items-center gap-4">
-              <div className="bg-slate-50 p-2.5 rounded-xl dark:bg-slate-700">
-                <UserCircle className="w-6 h-6 text-slate-600 dark:text-slate-300" />
-              </div>
-              <div className="text-left text-slate-800 dark:text-slate-100">
-                <h3 className="text-lg font-bold">我的资料卡</h3>
-                <p className="text-slate-500 text-sm mt-0.5 dark:text-slate-400">完善信息与校园认证</p>
-              </div>
+          {/* Feature 3 */}
+          <div className="group relative rounded-3xl p-8 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border border-white/60 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none hover:-translate-y-2 transition-all duration-300 delay-200">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center mb-6 shadow-inner text-white group-hover:scale-110 transition-transform">
+              <ShieldCheck className="w-7 h-7" />
             </div>
-            <ArrowRight className="w-5 h-5 text-slate-400 group-hover:translate-x-1 transition-transform" />
-          </Link>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">多重量子安全</h3>
+            <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+              照片隐藏机制（双向喜欢才解锁）、端到端加密消息架构，以及严格的反骚扰风控系统，全方位保护你的隐私。
+            </p>
+          </div>
 
-        </div>
+          {/* Feature 4: AI Matchmaker */}
+          <div className="group relative rounded-3xl p-8 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border border-white/60 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none hover:-translate-y-2 transition-all duration-300 delay-300">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center mb-6 shadow-inner text-white group-hover:scale-110 transition-transform">
+              <Bot className="w-7 h-7" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">AI 专属智能月老</h3>
+            <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+              匹配成功后不知道咋开口？内置聪明的 AI 破冰助手，帮你全方位分析资料并想好第一句话，彻底消除社恐。
+            </p>
+          </div>
 
-        {/* Footer info */}
-        <p className="text-xs text-slate-400 mt-10">
-          Powered by DatePanda Intelligence
-        </p>
+        </section>
 
       </main>
+
+      {/* Footer */}
+      <footer className="w-full pb-8 pt-4 px-6 text-center border-t border-slate-200/50 dark:border-slate-800/50 mt-auto relative z-10">
+        <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center justify-center gap-1.5">
+          Powered by DatePanda Intelligence <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+        </p>
+      </footer>
     </div>
   );
 }
