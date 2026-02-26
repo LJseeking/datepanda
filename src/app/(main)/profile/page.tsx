@@ -6,7 +6,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Sparkles, MapPin, HeartHandshake, Compass, Camera, LockKeyhole, Eye, Globe } from "lucide-react";
+import { Loader2, Sparkles, MapPin, HeartHandshake, Compass, Camera, LockKeyhole, Eye, Globe, Heart } from "lucide-react";
 import KikoRadar from "@/components/charts/KikoRadar";
 
 // Derive "Avatar Label" based on highest dimension
@@ -268,6 +268,19 @@ export default function ProfilePage() {
 
                 </CardContent>
             </Card>
+
+            {/* Fixed Bottom Nav */}
+            <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 px-4 py-3 safe-bottom">
+                <div className="max-w-md mx-auto">
+                    <Button
+                        size="lg"
+                        onClick={() => router.push("/matching")}
+                        className="w-full h-14 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-400 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:-translate-y-0.5 transition-all font-bold text-base"
+                    >
+                        <Heart className="w-5 h-5 mr-2 fill-white/20" /> 查看本周匹配
+                    </Button>
+                </div>
+            </div>
         </div>
     );
 }

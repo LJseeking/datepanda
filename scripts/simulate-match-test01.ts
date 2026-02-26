@@ -65,7 +65,8 @@ async function run() {
     const subject = "【DatePanda】本周匹配已生成（周四）- 去看看你的匹配对象";
 
     const commonPointsHtml = reasons.map(r => `<li>${r}</li>`).join("");
-    const link = `https://www.lifesignal.fun/matching`;
+    const appBaseUrl = process.env.APP_BASE_URL || "https://datepanda.vercel.app";
+    const link = `${appBaseUrl}/matching`;
     const introHtml = `<p>本周的匹配结果已生成！对方与你的匹配度高达 <strong>${score}分</strong>。</p>`;
 
     const html = `
@@ -106,19 +107,57 @@ async function run() {
         console.log(html);
     }
 
+    // Create the actual Match record in the database so the UI can find it
+    await prisma.recommendation.deleteMany({
+        where: { proposerUserId: test01UserId, candidateUserId: test02UserId, weekKey, round }
+    });
+
+    // Create a dummy batch if it doesn't exist to satisfy the foreign key constraint
+    let batch = await prisma.dailyRecommendationBatch.findFirst({
+        where: { userId: test01UserId, dateKey }
+    });
+
+    if (!batch) {
+        batch = await prisma.dailyRecommendationBatch.create({
+            data: {
+                userId: test01UserId,
+                dateKey,
+                algoVersion: "TEST_MOCK_1.0",
+                policyChecksum: "mock",
+                policySnapshot: "{}"
+            }
+        });
+    }
+
+    const recommendation = await prisma.recommendation.create({
+        data: {
+            proposerUserId: test01UserId,
+            candidateUserId: test02UserId,
+            batchId: batch.id,
+            weekKey,
+            round,
+            kind: "MATCH",
+            score,
+            status: "PENDING",
+            reasonsJson: JSON.stringify({ reasons }),
+            rank: 1,
+            createdAt: new Date(),
+        }
+    });
+
     // Log success
     await prisma.notificationLog.create({
         data: {
             userId: test01UserId, weekKey, round, type,
             toEmail: receiverEmail,
             status: "SENT",
-            proposalId: "mock-proposal-123",
+            proposalId: recommendation.id,
             metaJson: JSON.stringify({ score }),
             sentAt: new Date(),
         }
     });
 
-    console.log(`✅ Process Finished!`);
+    console.log(`✅ Process Finished! Match created: ${recommendation.id}`);
     process.exit(0);
 }
 
