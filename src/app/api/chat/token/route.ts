@@ -6,11 +6,6 @@ import crypto from "crypto";
 export async function GET(req: NextRequest) {
     try {
         const { userId } = await requireUser(req);
-        const profile = await getMyProfile(userId);
-
-        if (!profile) {
-            return NextResponse.json({ error: "Profile not found" }, { status: 404 });
-        }
 
         const secretKey = process.env.TALKJS_SECRET_KEY;
         if (!secretKey) {
@@ -23,30 +18,32 @@ export async function GET(req: NextRequest) {
             .update(userId)
             .digest("hex");
 
+        // Profile is optional for chat — use fallback values if missing
         let snapshotData: any = {};
-        if (profile.profileSnapshot) {
-            try {
+        try {
+            const profile = await getMyProfile(userId);
+            if (profile?.profileSnapshot) {
                 snapshotData = JSON.parse(profile.profileSnapshot);
-            } catch (e) {
-                console.error("Failed to parse profileSnapshot", e);
             }
+        } catch (e) {
+            console.error("Failed to load profile for chat token", e);
         }
 
         return NextResponse.json({
             user: {
                 id: userId,
-                name: snapshotData.nickname || "User",
+                name: snapshotData.nickname || snapshotData.answers?.open_text_self_intro || "Panda User",
                 photoUrl: snapshotData.avatarUrl || `https://api.dicebear.com/9.x/avataaars/svg?seed=${userId}`,
-                email: "user@example.com", // Hidden or actual
+                email: null,
                 role: "default"
             },
             signature
         });
     } catch (error: any) {
-        if (error?.status === 401) {
+        console.error("Error generating TalkJS token:", error);
+        if (error?.status === 401 || error instanceof Response) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
-        console.error("Error generating TalkJS token & profile:", error);
         return NextResponse.json({ error: "Failed to load chat auth data" }, { status: 500 });
     }
 }
