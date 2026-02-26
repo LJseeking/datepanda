@@ -136,7 +136,7 @@ async function run() {
             batchId: batch.id,
             weekKey,
             round,
-            kind: "MATCH",
+            kind: "MATCH_PROPOSAL",
             score,
             status: "PENDING",
             reasonsJson: JSON.stringify({ reasons }),
