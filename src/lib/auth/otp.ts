@@ -55,7 +55,12 @@ export async function isSchoolEmail(email: string): Promise<{
   });
 
   if (!record) {
-    return { ok: false, error: "暂仅支持杭州首批试点学校邮箱" };
+    // FALLBACK: If the allowed domain table is empty (unseeded) or the school isn't listed
+    // we allow any standard edu.cn email to pass through for now to prevent complete blockage.
+    if (domain.endsWith(".edu.cn")) {
+      return { ok: true, schoolName: "Unknown University (edu.cn)" };
+    }
+    return { ok: false, error: "暂仅支持杭州首批试点学校邮箱 (或 .edu.cn 结尾的邮箱)" };
   }
 
   return { ok: true, schoolName: record.school.name };

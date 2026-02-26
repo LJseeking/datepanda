@@ -94,11 +94,16 @@ export default function KikoQuestionnairePage() {
                 value: String(v),
             }));
 
-            await fetch("/api/questionnaire/save", {
+            const res = await fetch("/api/questionnaire/save", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ answers: payload }),
             });
+
+            if (!res.ok) {
+                const json = await res.json().catch(() => ({}));
+                throw new Error(json.error?.message || `HTTP error! status: ${res.status}`);
+            }
         } catch (e) {
             console.error("Failed to save draft", e);
         }
@@ -112,17 +117,25 @@ export default function KikoQuestionnairePage() {
 
             // Submit
             const res = await fetch("/api/questionnaire/submit", { method: "POST" });
+            if (!res.ok) {
+                const json = await res.json().catch(() => ({}));
+                throw new Error(json.error?.message || `Submit failed with status: ${res.status}`);
+            }
             const json = await res.json();
             if (!json.ok) throw new Error(json.error?.message || "Submit failed");
 
             // Generate Profile
             const pRes = await fetch("/api/profile/generate", { method: "POST" });
+            if (!pRes.ok) {
+                const pJson = await pRes.json().catch(() => ({}));
+                throw new Error(pJson.error?.message || `Profile generation failed with status: ${pRes.status}`);
+            }
             const pJson = await pRes.json();
             if (!pJson.ok) throw new Error(pJson.error?.message || "Profile generation failed");
 
             setLocked(true);
             setTimeout(() => {
-                router.push("/");
+                router.push("/profile");
             }, 2000); // Give user 2s to read the completion message
         } catch (e: any) {
             console.error(e);

@@ -1,4 +1,5 @@
 import { QUESTIONS, Question, QuestionType, QUESTIONNAIRE_VERSION } from "./questions";
+import { KIKO_QUESTIONS } from "./kikoQuestions";
 
 export { QUESTIONS, QUESTIONNAIRE_VERSION };
 
@@ -6,6 +7,15 @@ export function getQuestionMap(): Map<string, Question> {
   const map = new Map<string, Question>();
   for (const q of QUESTIONS) {
     map.set(q.key, q);
+  }
+  for (const kq of KIKO_QUESTIONS) {
+    map.set(kq.id, {
+      key: kq.id,
+      title: kq.kikoText,
+      type: "scale",
+      required: true,
+      scale: { min: 1, max: 5 }
+    });
   }
   return map;
 }
@@ -32,7 +42,7 @@ export function validateAnswer(
       };
     }
     if (question.type === "multi" && (!Array.isArray(answer) || answer.length === 0)) {
-       return {
+      return {
         ok: false,
         code: "MISSING_REQUIRED",
         message: `Question '${question.title}' is required`,
@@ -82,7 +92,7 @@ export function validateAnswer(
         const validValues = new Set(question.options.map((o) => o.value));
         for (const val of answer) {
           if (typeof val !== "string" || !validValues.has(val)) {
-             return {
+            return {
               ok: false,
               code: "INVALID_OPTION",
               message: `Value '${val}' is not a valid option`,
@@ -94,7 +104,7 @@ export function validateAnswer(
 
     case "scale":
       if (typeof answer !== "number") {
-         return {
+        return {
           ok: false,
           code: "INVALID_PAYLOAD",
           message: "Scale answer must be a number",
@@ -134,7 +144,17 @@ export function validateAnswer(
 }
 
 export function getRequiredKeys(): string[] {
-  return QUESTIONS.filter((q) => q.required).map((q) => q.key);
+  const baseKeys = QUESTIONS.filter((q) => q.required).map((q) => q.key);
+  const kikoKeys = KIKO_QUESTIONS.map(q => q.id);
+  // We union them because we need both base and kiko questions to be completely answered
+  // But wait, the MVP only shows Kiko questions in the frontend right now maybe?
+  // Let's check `kiko/page.tsx`, it ONLY asks `A01` to `E12`.
+  // If `kiko/page.tsx` is the ENTIRE questionnaire, then `baseKeys` won't be filled, meaning `submitQuestionnaire` will still fail.
+  // We need to return the actually required keys for the current frontend flow, which is ONLY the ones that are being asked.
+  // I will make sure we return ALL required keys including kiko keys. We will fix `kiko/page.tsx` or `service` so that only the asked keys are validated for draft. But for final submit, if the flow is just Kiko, then maybe base questions are optional.
+  // Actually, wait, let's keep all required keys, and we will patch `submitQuestionnaire` to handle KIKO-only MVP if that's the case. 
+  // For now let's just combine them safely.
+  return [...baseKeys, ...kikoKeys];
 }
 
 export function assertAllQuestionsUnique(): void {

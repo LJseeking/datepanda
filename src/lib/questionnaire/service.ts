@@ -179,8 +179,8 @@ export async function upsertDraftAnswers(userId: string, answers: AnswerInput[])
 
     return { responseId: response.id };
   }, {
-    maxWait: 5000,
-    timeout: 20000, // 20 seconds to accommodate remote DB latency
+    maxWait: 15000,
+    timeout: 60000, // 60 seconds to accommodate large smoke test bulk inserts on Neon Serverless
   });
 }
 
@@ -191,6 +191,7 @@ export async function submitQuestionnaire(userId: string) {
     // 1. Get Response
     const response = await tx.response.findFirst({
       where: { userId, questionnaireVersionId: versionId, status: "IN_PROGRESS" },
+      orderBy: { createdAt: "desc" },
       include: { items: true, itemOptions: { include: { option: true } } } // Need to load answers to validate
     });
 

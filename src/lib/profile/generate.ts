@@ -71,6 +71,12 @@ export function generateProfileSnapshot(
     contradictions: kikoCheck.contradictionCount,
     isValid: kikoCheck.isValid
   };
+
+  // Prevent phantom 50s from polluting the pool
+  if (kikoCheck.missingCount > 5) {
+    throw new Error("Insufficient Kiko responses to generate a valid profile snapshot.");
+  }
+
   snapshot.kikoDimensions = calculateKikoDimensions(snapshot.traits);
 
   const jsonStr = stableStringify(snapshot);
