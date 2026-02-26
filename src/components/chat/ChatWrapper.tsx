@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback, ReactNode, Component, ErrorInfo } from "react";
 import { useRouter } from "next/navigation";
-import dynamic from "next/dynamic";
 import { RefreshCw } from "lucide-react";
 
 // ---------- Error Boundary ----------
@@ -16,30 +15,27 @@ class ChatErrorBoundary extends Component<EBProps, EBState> {
         this.props.onError(error);
     }
     render() {
-        if (this.state.hasError) return null; // parent will show error UI
+        if (this.state.hasError) return null;
         return this.props.children;
     }
 }
-
-// ---------- Dynamically import TalkJS (no SSR) ----------
-const TalkJsSession = dynamic(
-    () => import("@talkjs/react").then((mod) => mod.Session),
-    { ssr: false, loading: () => <div className="p-4 text-center text-slate-400">加载通讯模块...</div> }
-);
 
 interface ChatWrapperProps { children: ReactNode; }
 
 export default function ChatWrapper({ children }: ChatWrapperProps) {
     const router = useRouter();
-    const [talkJsUser, setTalkJsUser] = useState<any>(null);
-    const [signature, setSignature] = useState<string | null>(null);
+    const [ready, setReady] = useState(false);
+    const [sessionProps, setSessionProps] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [SessionComponent, setSessionComponent] = useState<any>(null);
 
     const initChat = useCallback(async () => {
         setLoading(true);
         setError(null);
+        setReady(false);
         try {
+            // 1. Fetch token data from our API
             const tokenRes = await fetch("/api/chat/token", {
                 cache: "no-store",
                 headers: { "Pragma": "no-cache", "Cache-Control": "no-cache" }
@@ -56,8 +52,36 @@ export default function ChatWrapper({ children }: ChatWrapperProps) {
             }
 
             const tokenData = await tokenRes.json();
-            if (tokenData.user) setTalkJsUser(tokenData.user);
-            if (tokenData.signature) setSignature(tokenData.signature);
+            const userData = tokenData.user;
+            const signature = tokenData.signature;
+
+            if (!userData?.id) {
+                throw new Error("API 未返回有效用户信息");
+            }
+
+            const appId = process.env.NEXT_PUBLIC_TALKJS_APP_ID;
+            if (!appId) {
+                throw new Error("系统配置错误: 缺少 TALKJS APP ID");
+            }
+
+            // 2. Dynamically import TalkJS (browser-only)
+            const Talk = (await import("talkjs")).default;
+            await Talk.ready;
+
+            // 3. Construct a proper Talk.User instance
+            const talkUser = new Talk.User({
+                id: userData.id,
+                name: userData.name || "Panda User",
+                photoUrl: userData.photoUrl || undefined,
+                role: userData.role || "default",
+            });
+
+            // 4. Dynamically import the React Session component
+            const { Session } = await import("@talkjs/react");
+            setSessionComponent(() => Session);
+
+            setSessionProps({ appId, syncUser: talkUser, signature: signature || undefined });
+            setReady(true);
         } catch (err: any) {
             console.error("[ChatWrapper] Failed to initialize TalkJS:", err);
             setError(err instanceof Error ? err.message : "网络异常，无法连接服务器");
@@ -84,7 +108,7 @@ export default function ChatWrapper({ children }: ChatWrapperProps) {
         );
     }
 
-    if (!talkJsUser) {
+    if (!ready || !SessionComponent || !sessionProps) {
         return (
             <div className="p-6 text-center space-y-4">
                 <p className="text-red-500 font-medium">无法获取通讯凭证</p>
@@ -95,20 +119,17 @@ export default function ChatWrapper({ children }: ChatWrapperProps) {
         );
     }
 
-    const appId = process.env.NEXT_PUBLIC_TALKJS_APP_ID;
-    if (!appId) {
-        return <div className="p-4 text-center text-red-500">系统配置错误: 缺少通讯组件 Key</div>;
-    }
+    const DynamicSession = SessionComponent;
 
     return (
         <ChatErrorBoundary onError={(err) => setError(`TalkJS 初始化失败: ${err.message}`)}>
-            <TalkJsSession
-                appId={appId}
-                syncUser={talkJsUser}
-                signature={signature || undefined}
+            <DynamicSession
+                appId={sessionProps.appId}
+                syncUser={sessionProps.syncUser}
+                signature={sessionProps.signature}
             >
                 {children}
-            </TalkJsSession>
+            </DynamicSession>
         </ChatErrorBoundary>
     );
 }
