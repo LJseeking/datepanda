@@ -3,6 +3,8 @@ import { requireUser } from "@/lib/auth/requireUser";
 import { getMyProfile } from "@/lib/profile/service";
 import crypto from "crypto";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
     try {
         const { userId } = await requireUser(req);

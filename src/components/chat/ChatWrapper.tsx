@@ -20,7 +20,13 @@ export default function ChatWrapper({ children }: ChatWrapperProps) {
         setLoading(true);
         setError(null);
         try {
-            const tokenRes = await fetch("/api/chat/token");
+            const tokenRes = await fetch("/api/chat/token", {
+                cache: "no-store",
+                headers: {
+                    "Pragma": "no-cache",
+                    "Cache-Control": "no-cache"
+                }
+            });
 
             if (!tokenRes.ok) {
                 if (tokenRes.status === 401) {
