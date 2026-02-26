@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db/prisma";
 import { generateIcebreaker } from "@/lib/ai/deepseek";
-import { sendTalkJsSystemMessage } from "@/lib/messaging/talkjs";
+import { ensureTalkJsConversation, sendTalkJsSystemMessage } from "@/lib/messaging/talkjs";
 
 
 /**
@@ -76,9 +76,24 @@ export async function ensureConversationForPair(userAId: string, userBId: string
       });
     });
 
-    // 5. 将大模型破冰话术推入 TalkJS 云端渲染
-    // Note: TalkJS REST API treats the `pairKey` as the unique Conversation ID
-    // (which matches how the frontend syncs it).
+    // 5. Create the TalkJS conversation and add participants
+    const getSnapshotName = (u: any) => {
+      try {
+        const snap = u?.profiles?.[0]?.profileSnapshot;
+        if (snap) {
+          const parsed = JSON.parse(snap);
+          return parsed.nickname || parsed.answers?.open_text_self_intro || "Panda User";
+        }
+      } catch { }
+      return "Panda User";
+    };
+
+    await ensureTalkJsConversation(pairKey,
+      { id: u1, name: getSnapshotName(userA), photoUrl: userA?.avatarUrl || undefined },
+      { id: u2, name: getSnapshotName(userB), photoUrl: userB?.avatarUrl || undefined }
+    );
+
+    // 6. 将大模型破冰话术推入 TalkJS 云端渲染
     await sendTalkJsSystemMessage(pairKey, icebreaker);
 
     return { conversationId: result.id };

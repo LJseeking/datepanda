@@ -1,3 +1,96 @@
+const SYSTEM_USER_ID = "system-kiko";
+
+function getApiHeaders(secretKey: string) {
+    return {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${secretKey}`
+    };
+}
+
+/**
+ * Upsert a user in TalkJS (idempotent)
+ */
+async function ensureTalkJsUser(appId: string, secretKey: string, user: { id: string; name: string; photoUrl?: string; role?: string }) {
+    const res = await fetch(`https://api.talkjs.com/v1/${appId}/users/${user.id}`, {
+        method: "PUT",
+        headers: getApiHeaders(secretKey),
+        body: JSON.stringify({
+            name: user.name,
+            photoUrl: user.photoUrl || `https://api.dicebear.com/9.x/avataaars/svg?seed=${user.id}`,
+            role: user.role || "default"
+        })
+    });
+    if (!res.ok) {
+        console.error(`[TalkJS] Failed to upsert user ${user.id}:`, res.status, await res.text());
+        return false;
+    }
+    return true;
+}
+
+/**
+ * Create/update a TalkJS conversation and add participants
+ */
+export async function ensureTalkJsConversation(
+    conversationId: string,
+    userA: { id: string; name: string; photoUrl?: string },
+    userB: { id: string; name: string; photoUrl?: string }
+) {
+    const appId = process.env.NEXT_PUBLIC_TALKJS_APP_ID;
+    const secretKey = process.env.TALKJS_SECRET_KEY;
+
+    if (!appId || !secretKey) {
+        console.warn("[TalkJS] Missing API keys. Skipping conversation creation.");
+        return false;
+    }
+
+    try {
+        // 1. Upsert both users in TalkJS
+        await Promise.all([
+            ensureTalkJsUser(appId, secretKey, userA),
+            ensureTalkJsUser(appId, secretKey, userB),
+        ]);
+
+        // 2. Create or update the conversation
+        const convRes = await fetch(`https://api.talkjs.com/v1/${appId}/conversations/${conversationId}`, {
+            method: "PUT",
+            headers: getApiHeaders(secretKey),
+            body: JSON.stringify({
+                participants: [userA.id, userB.id],
+                subject: "DatePanda 匹配聊天",
+                custom: { source: "datepanda-matching" },
+            })
+        });
+        if (!convRes.ok) {
+            console.error("[TalkJS] Failed to create conversation:", convRes.status, await convRes.text());
+            return false;
+        }
+
+        // 3. Ensure both are added as participants (belt-and-suspenders)
+        await Promise.all([
+            fetch(`https://api.talkjs.com/v1/${appId}/conversations/${conversationId}/participants/${userA.id}`, {
+                method: "PUT",
+                headers: getApiHeaders(secretKey),
+                body: JSON.stringify({ notify: true })
+            }),
+            fetch(`https://api.talkjs.com/v1/${appId}/conversations/${conversationId}/participants/${userB.id}`, {
+                method: "PUT",
+                headers: getApiHeaders(secretKey),
+                body: JSON.stringify({ notify: true })
+            })
+        ]);
+
+        console.log(`[TalkJS] Conversation ${conversationId} created with users ${userA.id} & ${userB.id}`);
+        return true;
+    } catch (err) {
+        console.error("[TalkJS] ensureTalkJsConversation error:", err);
+        return false;
+    }
+}
+
+
+/**
+ * Send a system message (e.g. AI icebreaker) into a conversation
+ */
 export async function sendTalkJsSystemMessage(conversationId: string, content: string) {
     const appId = process.env.NEXT_PUBLIC_TALKJS_APP_ID;
     const secretKey = process.env.TALKJS_SECRET_KEY;
@@ -9,43 +102,23 @@ export async function sendTalkJsSystemMessage(conversationId: string, content: s
 
     try {
         // 1. Ensure the Kiko System User exists in TalkJS first (Idempotent upsert)
-        const systemUserId = "system-kiko";
-        const upsertRes = await fetch(`https://api.talkjs.com/v1/${appId}/users/${systemUserId}`, {
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${secretKey}`
-            },
-            body: JSON.stringify({
-                name: "Kiko (熊猫助手)",
-                email: ["kiko@datepanda.app"],
-                photoUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=kiko",
-                welcomeMessage: "我是一只懂心理学的熊猫红娘！",
-                role: "system"
-            })
+        await ensureTalkJsUser(appId, secretKey, {
+            id: SYSTEM_USER_ID,
+            name: "Kiko (熊猫助手)",
+            photoUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=kiko",
+            role: "system"
         });
 
-        if (!upsertRes.ok) {
-            console.error("[TalkJS System User Setup Failed]", upsertRes.status);
-            return false;
-        }
-
         // 2. Post the Icebreaker Message into the specific conversation
-        // The REST API expects an array of message objects to post
         const messageRes = await fetch(`https://api.talkjs.com/v1/${appId}/conversations/${conversationId}/messages`, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${secretKey}`
-            },
+            headers: getApiHeaders(secretKey),
             body: JSON.stringify([
                 {
                     text: content,
-                    sender: systemUserId,
+                    sender: SYSTEM_USER_ID,
                     type: "SystemMessage",
-                    custom: {
-                        isIcebreaker: "true"
-                    }
+                    custom: { isIcebreaker: "true" }
                 }
             ])
         });
