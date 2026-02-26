@@ -1,9 +1,21 @@
 "use client";
 
-import { Inbox } from "@talkjs/react";
+import dynamic from "next/dynamic";
 import ChatWrapper from "@/components/chat/ChatWrapper";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles } from "lucide-react";
+
+const TalkJsInbox = dynamic(
+    () => import("@talkjs/react").then((mod) => mod.Inbox),
+    {
+        ssr: false,
+        loading: () => (
+            <div className="flex w-full h-full items-center justify-center text-slate-400 text-sm">
+                正在同步量子信号...
+            </div>
+        )
+    }
+);
 
 export default function MessagesPage() {
     return (
@@ -23,8 +35,7 @@ export default function MessagesPage() {
                 {/* The Chat Wrapper handles Session and Identity */}
                 <ChatWrapper>
                     <div className="flex-1 w-full relative bg-slate-50 dark:bg-slate-950">
-                        {/* The Inbox component automatically fills its container */}
-                        <Inbox
+                        <TalkJsInbox
                             style={{ width: "100%", height: "100%" }}
                             theme="default"
                             showMobileBackButton={true}

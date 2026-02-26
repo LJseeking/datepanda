@@ -1,13 +1,33 @@
 "use client";
 
-import { useEffect, useState, useCallback, ReactNode } from "react";
+import { useEffect, useState, useCallback, ReactNode, Component, ErrorInfo } from "react";
 import { useRouter } from "next/navigation";
-import { Session } from "@talkjs/react";
+import dynamic from "next/dynamic";
 import { RefreshCw } from "lucide-react";
 
-interface ChatWrapperProps {
-    children: ReactNode;
+// ---------- Error Boundary ----------
+interface EBProps { children: ReactNode; onError: (err: Error) => void }
+interface EBState { hasError: boolean }
+class ChatErrorBoundary extends Component<EBProps, EBState> {
+    constructor(props: EBProps) { super(props); this.state = { hasError: false }; }
+    static getDerivedStateFromError() { return { hasError: true }; }
+    componentDidCatch(error: Error, info: ErrorInfo) {
+        console.error("[ChatErrorBoundary]", error, info);
+        this.props.onError(error);
+    }
+    render() {
+        if (this.state.hasError) return null; // parent will show error UI
+        return this.props.children;
+    }
 }
+
+// ---------- Dynamically import TalkJS (no SSR) ----------
+const TalkJsSession = dynamic(
+    () => import("@talkjs/react").then((mod) => mod.Session),
+    { ssr: false, loading: () => <div className="p-4 text-center text-slate-400">加载通讯模块...</div> }
+);
+
+interface ChatWrapperProps { children: ReactNode; }
 
 export default function ChatWrapper({ children }: ChatWrapperProps) {
     const router = useRouter();
@@ -22,15 +42,11 @@ export default function ChatWrapper({ children }: ChatWrapperProps) {
         try {
             const tokenRes = await fetch("/api/chat/token", {
                 cache: "no-store",
-                headers: {
-                    "Pragma": "no-cache",
-                    "Cache-Control": "no-cache"
-                }
+                headers: { "Pragma": "no-cache", "Cache-Control": "no-cache" }
             });
 
             if (!tokenRes.ok) {
                 if (tokenRes.status === 401) {
-                    // Not authenticated — redirect to login
                     console.warn("[ChatWrapper] 401 — redirecting to login");
                     router.push("/login");
                     return;
@@ -50,9 +66,7 @@ export default function ChatWrapper({ children }: ChatWrapperProps) {
         }
     }, [router]);
 
-    useEffect(() => {
-        initChat();
-    }, [initChat]);
+    useEffect(() => { initChat(); }, [initChat]);
 
     if (loading) {
         return <div className="p-4 text-center text-slate-500">正在验证通讯凭证...</div>;
@@ -63,10 +77,7 @@ export default function ChatWrapper({ children }: ChatWrapperProps) {
             <div className="p-6 text-center space-y-4">
                 <p className="text-red-500 font-medium">通讯连接失败</p>
                 <p className="text-sm text-slate-500">{error}</p>
-                <button
-                    onClick={initChat}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold shadow transition-all active:scale-95"
-                >
+                <button onClick={initChat} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold shadow transition-all active:scale-95">
                     <RefreshCw className="w-4 h-4" /> 重新连接
                 </button>
             </div>
@@ -77,10 +88,7 @@ export default function ChatWrapper({ children }: ChatWrapperProps) {
         return (
             <div className="p-6 text-center space-y-4">
                 <p className="text-red-500 font-medium">无法获取通讯凭证</p>
-                <button
-                    onClick={initChat}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold shadow transition-all active:scale-95"
-                >
+                <button onClick={initChat} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold shadow transition-all active:scale-95">
                     <RefreshCw className="w-4 h-4" /> 重试
                 </button>
             </div>
@@ -89,17 +97,18 @@ export default function ChatWrapper({ children }: ChatWrapperProps) {
 
     const appId = process.env.NEXT_PUBLIC_TALKJS_APP_ID;
     if (!appId) {
-        console.warn("TalkJS App ID is missing. Chat will not load.");
         return <div className="p-4 text-center text-red-500">系统配置错误: 缺少通讯组件 Key</div>;
     }
 
     return (
-        <Session
-            appId={appId}
-            syncUser={talkJsUser}
-            signature={signature || undefined}
-        >
-            {children}
-        </Session>
+        <ChatErrorBoundary onError={(err) => setError(`TalkJS 初始化失败: ${err.message}`)}>
+            <TalkJsSession
+                appId={appId}
+                syncUser={talkJsUser}
+                signature={signature || undefined}
+            >
+                {children}
+            </TalkJsSession>
+        </ChatErrorBoundary>
     );
 }
