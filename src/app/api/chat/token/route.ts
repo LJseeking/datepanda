@@ -37,7 +37,6 @@ export async function GET(req: NextRequest) {
                 id: userId,
                 name: snapshotData.nickname || snapshotData.answers?.open_text_self_intro || "Panda User",
                 photoUrl: snapshotData.avatarUrl || `https://api.dicebear.com/9.x/avataaars/svg?seed=${userId}`,
-                email: null,
                 role: "default"
             },
             signature
