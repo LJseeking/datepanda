@@ -9,9 +9,10 @@ export async function GET(req: NextRequest) {
 
         const secretKey = process.env.TALKJS_SECRET_KEY;
         if (!secretKey) {
-            console.error("Missing TALKJS_SECRET_KEY in environment variables");
-            return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+            console.error("[chat/token] TALKJS_SECRET_KEY is NOT set in environment!");
+            return NextResponse.json({ error: "服务器缺少 TALKJS_SECRET_KEY 配置" }, { status: 500 });
         }
+        console.log(`[chat/token] Generating signature for userId=${userId}`);
 
         const signature = crypto
             .createHmac("sha256", secretKey)
@@ -40,10 +41,10 @@ export async function GET(req: NextRequest) {
             signature
         });
     } catch (error: any) {
-        console.error("Error generating TalkJS token:", error);
+        console.error("[chat/token] Error:", error?.message || error);
         if (error?.status === 401 || error instanceof Response) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+            return NextResponse.json({ error: "未登录或会话已过期" }, { status: 401 });
         }
-        return NextResponse.json({ error: "Failed to load chat auth data" }, { status: 500 });
+        return NextResponse.json({ error: "聊天认证服务异常" }, { status: 500 });
     }
 }
