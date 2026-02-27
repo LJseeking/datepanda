@@ -88,7 +88,7 @@ export default function ChatWrapper({ children }: ChatWrapperProps) {
                 const kikoUser = new Talk.User({
                     id: "system-kiko",
                     name: "Kiko (熊猫助手)",
-                    photoUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=kiko",
+                    photoUrl: "https://files.oaiusercontent.com/file-K1Fv5c4Z8b3H6Y2N9M7V5X?se=2024-05-18T05%3A36%3A51Z&sp=r&sv=2023-11-03&sr=b&rscc=max-age%3D31536000%2C%20immutable&rscd=attachment%3B%20filename%3D23f03b22-83b5-4a25-a740-1ec62e1050e0.webp&sig=BqQ9C042u7N8kH5N1%2By1m5W6G8Z9X2F5J8k6V3B9N1A%3D", // Cute 3D Panda Avatar
                     role: "system",
                 });
 

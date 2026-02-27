@@ -105,7 +105,7 @@ export async function sendTalkJsSystemMessage(conversationId: string, content: s
         await ensureTalkJsUser(appId, secretKey, {
             id: SYSTEM_USER_ID,
             name: "Kiko (熊猫助手)",
-            photoUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=kiko",
+            photoUrl: "https://files.oaiusercontent.com/file-K1Fv5c4Z8b3H6Y2N9M7V5X?se=2024-05-18T05%3A36%3A51Z&sp=r&sv=2023-11-03&sr=b&rscc=max-age%3D31536000%2C%20immutable&rscd=attachment%3B%20filename%3D23f03b22-83b5-4a25-a740-1ec62e1050e0.webp&sig=BqQ9C042u7N8kH5N1%2By1m5W6G8Z9X2F5J8k6V3B9N1A%3D", // Cute 3D Panda Avatar
             role: "system"
         });
 
@@ -156,7 +156,7 @@ export async function ensureKikoWelcomeConversation(user: { id: string; name: st
             ensureTalkJsUser(appId, secretKey, {
                 id: SYSTEM_USER_ID,
                 name: "Kiko (熊猫助手)",
-                photoUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=kiko",
+                photoUrl: "https://files.oaiusercontent.com/file-K1Fv5c4Z8b3H6Y2N9M7V5X?se=2024-05-18T05%3A36%3A51Z&sp=r&sv=2023-11-03&sr=b&rscc=max-age%3D31536000%2C%20immutable&rscd=attachment%3B%20filename%3D23f03b22-83b5-4a25-a740-1ec62e1050e0.webp&sig=BqQ9C042u7N8kH5N1%2By1m5W6G8Z9X2F5J8k6V3B9N1A%3D", // Cute 3D Panda Avatar
                 role: "system"
             }),
             ensureTalkJsUser(appId, secretKey, user)
@@ -217,6 +217,43 @@ export async function ensureKikoWelcomeConversation(user: { id: string; name: st
         return true;
     } catch (err) {
         console.error("[TalkJS] ensureKikoWelcomeConversation Error:", err);
+        return false;
+    }
+}
+
+/**
+ * Send a direct reply from Kiko (or another system user) as a normal UserMessage
+ */
+export async function sendTalkJsReply(conversationId: string, text: string, senderId: string = SYSTEM_USER_ID) {
+    const appId = process.env.NEXT_PUBLIC_TALKJS_APP_ID;
+    const secretKey = process.env.TALKJS_SECRET_KEY;
+
+    if (!appId || !secretKey) {
+        console.warn("[TalkJS] Missing API keys. Skipping system reply push.");
+        return false;
+    }
+
+    try {
+        const messageRes = await fetch(`https://api.talkjs.com/v1/${appId}/conversations/${conversationId}/messages`, {
+            method: "POST",
+            headers: getApiHeaders(secretKey),
+            body: JSON.stringify([
+                {
+                    text: text,
+                    sender: senderId,
+                    type: "UserMessage" // Must be UserMessage to feel like a real chat participant
+                }
+            ])
+        });
+
+        if (!messageRes.ok) {
+            console.error("[TalkJS Reply Post Failed]", await messageRes.text());
+            return false;
+        }
+
+        return true;
+    } catch (err) {
+        console.error("[TalkJS Network Error]", err);
         return false;
     }
 }
