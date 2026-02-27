@@ -106,6 +106,11 @@ model User {
   reportsInitiated    Report[] @relation("Reporter")
   reportsReceived     Report[] @relation("ReportTarget")
 
+  // Icebreaker MVP
+  matchRoomsAsA       MatchRoom[] @relation("MatchA")
+  matchRoomsAsB       MatchRoom[] @relation("MatchB")
+  userContact         UserContact?
+
   @@index([status, deletedAt])
   @@index([cityCode, schoolId])
 }
@@ -469,4 +474,87 @@ model NotificationLog {
   // Strict idempotency
   @@unique([userId, weekKey, round, type])
   @@index([weekKey, round, status])
+}
+
+// --------------------------------------
+// Icebreaker MVP — No-Chat Interaction
+// --------------------------------------
+
+// Contact status state machine:
+// LOCKED → A_REQUESTED / B_REQUESTED → MUTUAL_ACCEPTED → REVOKED
+// Any state → BLOCKED (terminal)
+model MatchRoom {
+  id                  String    @id @default(cuid())
+  userAId             String    // lexicographically smaller userId
+  userBId             String    // lexicographically larger userId
+  contactStatus       String    @default("LOCKED")
+  contactRequesterId  String?   // userId who last sent a contact request
+  requestedAt         DateTime?
+  unlockedAt          DateTime?
+  revokedAt           DateTime?
+  blockerId           String?   // userId who blocked
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  userA   User               @relation("MatchA", fields: [userAId], references: [id], onDelete: Restrict)
+  userB   User               @relation("MatchB", fields: [userBId], references: [id], onDelete: Restrict)
+  answers IcebreakerAnswer[]
+  logs    ContactUnlockLog[]
+
+  @@unique([userAId, userBId])
+  @@index([userAId, contactStatus])
+  @@index([userBId, contactStatus])
+}
+
+model IcebreakerQuestion {
+  id          String   @id @default(cuid())
+  type        String   // "CHOICE" | "TEXT"
+  prompt      String
+  optionsJson String?  // JSON array for CHOICE type, e.g. ["选项A","选项B"]
+  sortOrder   Int      @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  answers IcebreakerAnswer[]
+
+  @@index([active, sortOrder])
+}
+
+model IcebreakerAnswer {
+  id           String   @id @default(cuid())
+  matchId      String
+  questionId   String
+  userId       String
+  answerText   String?  // for TEXT type questions
+  answerOption String?  // for CHOICE type questions (selected label)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  match    MatchRoom          @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  question IcebreakerQuestion @relation(fields: [questionId], references: [id], onDelete: Restrict)
+
+  @@unique([matchId, questionId, userId])
+  @@index([matchId, userId])
+}
+
+model UserContact {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  wechatIdEnc String   // AES-256-GCM encrypted: iv:authTag:ciphertext (hex)
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ContactUnlockLog {
+  id        String   @id @default(cuid())
+  matchId   String
+  userId    String   // who performed the action
+  event     String   // REQUESTED | ACCEPTED | REVOKED | BLOCKED | VIEWED
+  createdAt DateTime @default(now())
+
+  match MatchRoom @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@index([matchId, createdAt])
+  @@index([userId, event, createdAt])
 }
