@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth/requireUser";
 import { getMyProfile } from "@/lib/profile/service";
 import crypto from "crypto";
+import { ensureKikoWelcomeConversation } from "@/lib/messaging/talkjs";
 
 export const dynamic = "force-dynamic";
 
@@ -32,13 +33,18 @@ export async function GET(req: NextRequest) {
             console.error("Failed to load profile for chat token", e);
         }
 
+        const talkUser = {
+            id: userId,
+            name: snapshotData.nickname || snapshotData.answers?.open_text_self_intro || "Panda User",
+            photoUrl: snapshotData.avatarUrl || `https://api.dicebear.com/9.x/avataaars/svg?seed=${userId}`,
+            role: "default"
+        };
+
+        // Ensure Kiko welcome chat exists so the Inbox is not empty
+        await ensureKikoWelcomeConversation(talkUser);
+
         return NextResponse.json({
-            user: {
-                id: userId,
-                name: snapshotData.nickname || snapshotData.answers?.open_text_self_intro || "Panda User",
-                photoUrl: snapshotData.avatarUrl || `https://api.dicebear.com/9.x/avataaars/svg?seed=${userId}`,
-                role: "default"
-            },
+            user: talkUser,
             signature
         });
     } catch (error: any) {

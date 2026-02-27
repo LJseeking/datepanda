@@ -134,3 +134,89 @@ export async function sendTalkJsSystemMessage(conversationId: string, content: s
         return false;
     }
 }
+
+/**
+ * Ensure a default 1-on-1 welcome conversation with Kiko exists for the user.
+ * This guarantees the user's Inbox is never empty, allowing them to see the typing input.
+ */
+export async function ensureKikoWelcomeConversation(user: { id: string; name: string; photoUrl?: string }) {
+    const appId = process.env.NEXT_PUBLIC_TALKJS_APP_ID;
+    const secretKey = process.env.TALKJS_SECRET_KEY;
+
+    if (!appId || !secretKey) {
+        console.warn("[TalkJS] Missing API keys. Skipping Kiko welcome conversation creation.");
+        return false;
+    }
+
+    const conversationId = `welcome_kiko_${user.id}`;
+
+    try {
+        // 1. Upsert both users (Kiko and the actual user)
+        await Promise.all([
+            ensureTalkJsUser(appId, secretKey, {
+                id: SYSTEM_USER_ID,
+                name: "Kiko (熊猫助手)",
+                photoUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=kiko",
+                role: "system"
+            }),
+            ensureTalkJsUser(appId, secretKey, user)
+        ]);
+
+        // 2. Create the conversation
+        const convRes = await fetch(`https://api.talkjs.com/v1/${appId}/conversations/${conversationId}`, {
+            method: "PUT",
+            headers: getApiHeaders(secretKey),
+            body: JSON.stringify({
+                participants: [SYSTEM_USER_ID, user.id],
+                subject: "✨ 和 Kiko 聊聊",
+                custom: { category: "support", kikoWelcome: "true" }
+            })
+        });
+
+        if (!convRes.ok) {
+            console.error("[TalkJS] Failed to create Kiko welcome conversation:", convRes.status, await convRes.text());
+            return false;
+        }
+
+        // 3. Ensure they are participants
+        await Promise.all([
+            fetch(`https://api.talkjs.com/v1/${appId}/conversations/${conversationId}/participants/${SYSTEM_USER_ID}`, {
+                method: "PUT",
+                headers: getApiHeaders(secretKey),
+                body: JSON.stringify({ notify: false })
+            }),
+            fetch(`https://api.talkjs.com/v1/${appId}/conversations/${conversationId}/participants/${user.id}`, {
+                method: "PUT",
+                headers: getApiHeaders(secretKey),
+                body: JSON.stringify({ notify: true })
+            })
+        ]);
+
+        // 4. Send the initial welcome message from Kiko (only if the conversation is brand new, TalkJS doesn't error on repeats but might duplicate messages if we don't track. For now we will check if there are existing messages to avoid spamming).
+        const historyRes = await fetch(`https://api.talkjs.com/v1/${appId}/conversations/${conversationId}/messages`, {
+            headers: getApiHeaders(secretKey)
+        });
+
+        if (historyRes.ok) {
+            const history = await historyRes.json();
+            if (history.data && history.data.length === 0) {
+                await fetch(`https://api.talkjs.com/v1/${appId}/conversations/${conversationId}/messages`, {
+                    method: "POST",
+                    headers: getApiHeaders(secretKey),
+                    body: JSON.stringify([
+                        {
+                            text: "🐼 嗨！我是 Kiko，你的专属约会助手。在这里，你可以随时向我提问、反馈问题，或者只是无聊时找我聊聊天~ 祝你在 DatePanda 遇见对的人！",
+                            sender: SYSTEM_USER_ID,
+                            type: "UserMessage" // Real message so it shows in the chat naturally
+                        }
+                    ])
+                });
+            }
+        }
+
+        return true;
+    } catch (err) {
+        console.error("[TalkJS] ensureKikoWelcomeConversation Error:", err);
+        return false;
+    }
+}

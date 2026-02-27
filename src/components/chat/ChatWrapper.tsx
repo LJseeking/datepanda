@@ -76,9 +76,45 @@ export default function ChatWrapper({ children }: ChatWrapperProps) {
                 role: userData.role || "default",
             });
 
-            // 4. Dynamically import the React Session component
-            const { Session } = await import("@talkjs/react");
-            setSessionComponent(() => Session);
+            // 4. Create a real TalkJS Session to set up the Kiko welcome conversation
+            const session = new Talk.Session({
+                appId,
+                me: talkUser,
+                signature: signature || undefined,
+            });
+
+            // 5. Create Kiko welcome conversation (client-side, guaranteed before Inbox renders)
+            try {
+                const kikoUser = new Talk.User({
+                    id: "system-kiko",
+                    name: "Kiko (熊猫助手)",
+                    photoUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=kiko",
+                    role: "system",
+                });
+
+                const kikoConv = session.getOrCreateConversation(`welcome_kiko_${userData.id}`);
+                kikoConv.setParticipant(talkUser);
+                kikoConv.setParticipant(kikoUser);
+                kikoConv.setAttributes({
+                    subject: "✨ 和 Kiko 聊聊",
+                    welcomeMessages: [
+                        "🐼 嗨！我是 Kiko，你的专属约会助手。",
+                        "在这里，你可以随时向我提问、反馈问题，或者只是无聊时找我聊聊天~",
+                        "祝你在 DatePanda 遇见对的人！"
+                    ],
+                    custom: { category: "support", kikoWelcome: "true" }
+                });
+                console.log("[ChatWrapper] Kiko welcome conversation created/synced");
+            } catch (kikoErr) {
+                console.warn("[ChatWrapper] Failed to create Kiko welcome conversation (non-fatal):", kikoErr);
+            }
+
+            // 6. Destroy the manual session — the React <Session> component will create its own
+            session.destroy();
+
+            // 7. Dynamically import the React Session component
+            const { Session: SessionComp } = await import("@talkjs/react");
+            setSessionComponent(() => SessionComp);
 
             setSessionProps({ appId, syncUser: talkUser, signature: signature || undefined });
             setReady(true);
