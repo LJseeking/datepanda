@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
 interface EmailSender {
   send(to: string, subject: string, html: string, text?: string): Promise<boolean>;
@@ -49,10 +50,26 @@ class SmtpEmailSender implements EmailSender {
   }
 }
 
-function getEmailSender(): EmailSender {
-  if (process.env.EMAIL_PROVIDER === 'smtp') {
-    return new SmtpEmailSender();
+class ResendEmailSender implements EmailSender {
+  private client = new Resend(process.env.RESEND_API_KEY);
+
+  async send(to: string, subject: string, html: string): Promise<boolean> {
+    try {
+      const from = process.env.MAIL_FROM || '"DatePanda" <noreply@datepanda.fun>';
+      const { error } = await this.client.emails.send({ from, to, subject, html });
+      if (error) { console.error('[Resend] Error:', error); return false; }
+      console.log(`[Resend] Email sent to ${to}`);
+      return true;
+    } catch (err) {
+      console.error('[Resend] Exception:', err);
+      return false;
+    }
   }
+}
+
+function getEmailSender(): EmailSender {
+  if (process.env.EMAIL_PROVIDER === 'smtp') return new SmtpEmailSender();
+  if (process.env.EMAIL_PROVIDER === 'resend') return new ResendEmailSender();
   return new ConsoleEmailSender();
 }
 
@@ -72,5 +89,5 @@ export async function sendOtpEmail(email: string, code: string): Promise<boolean
 
 // Generic send function
 export async function sendEmail(to: string, subject: string, html: string, text?: string): Promise<boolean> {
-    return getEmailSender().send(to, subject, html, text);
+  return getEmailSender().send(to, subject, html, text);
 }
