@@ -287,11 +287,11 @@ export default function MatchingPage() {
                         {proposal.status === "MUTUAL_ACCEPTED" && (
                             <Button
                                 size="lg"
-                                onClick={() => router.push("/messages")}
+                                onClick={() => router.push("/matches")}
                                 className="w-full h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/20"
                             >
                                 <MessageCircleHeart className="w-5 h-5 mr-2" />
-                                去聊天室打个招呼
+                                开始破冰问答 🎉
                             </Button>
                         )}
                     </div>
