@@ -1,11 +1,8 @@
 import { NextRequest } from "next/server";
-import { cookies } from "next/headers";
 import { verifyOtp } from "@/lib/auth/otp";
 import { prisma } from "@/lib/db/prisma";
 import { apiSuccess, apiError } from "@/lib/utils/http";
-
-const COOKIE_NAME = "dp_session";
-const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
+import { createUserSession } from "@/lib/auth/session";
 
 export async function POST(req: NextRequest) {
     try {
@@ -123,15 +120,8 @@ export async function POST(req: NextRequest) {
             });
         }
 
-        // 4. 写 Session Cookie
-        const cookieStore = await cookies();
-        cookieStore.set(COOKIE_NAME, JSON.stringify({ userId: user.id }), {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
-            maxAge: SESSION_MAX_AGE,
-            path: "/",
-        });
+        // 4. 写 Session Cookie（iron-session 加密签名）
+        await createUserSession(user.id);
 
         return apiSuccess({
             user: { id: user.id, schoolId: school.id },

@@ -75,9 +75,13 @@ export async function GET(req: NextRequest) {
         // Ensure TalkJS conversation is created behind the scenes
         await ensureConversationForPair(u1Id, u2Id, "2026W10");
 
-        // Redirect to /messages and set cookie
+        // Redirect to /messages and set iron-session cookie
         const res = NextResponse.redirect(new URL("/messages", req.url));
-        res.cookies.set("dp_session", JSON.stringify({ userId: u1Id }), { path: "/" });
+        const { getIronSession } = await import("iron-session");
+        const { sessionOptions } = await import("@/lib/auth/session");
+        const session = await getIronSession<{ userId?: string }>(req, res, sessionOptions);
+        session.userId = u1Id;
+        await session.save();
 
         return res;
     } catch (e: any) {
