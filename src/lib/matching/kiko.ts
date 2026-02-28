@@ -20,7 +20,7 @@ const MIRROR_PAIRS: [string, string][] = [
     ["A03", "A08"],
     ["C01", "C07"],
     ["C03", "C08"],
-    ["M01", "M07"],
+    ["M01", "M02"],  // M01 positive(长期导向) ↔ M02 reverse(即时满足)
     ["M04", "M08"],
     ["P02", "P07"],
     ["P04", "P08"],
@@ -136,10 +136,19 @@ export function calculateKikoPairMatch(
         const diff = Math.abs(a - b);
         let compatibility = 100 - diff;
 
-        // Special adjustments can be overlaid here (e.g. if both have high ConflictRisk, penalize anyway)
+        // Penalty 1: both high ConflictRisk (low score = high risk) → extra deduction
         if (dim === "ConflictRisk" && a < 40 && b < 40) {
-            // both high risk (lower score = higher risk in our scale)
-            compatibility *= 0.8;
+            compatibility *= 0.7;
+        }
+
+        // Penalty 2: both stuck in the "uncertain middle" (score 38-65)
+        // Users with middling scores haven't formed a clear trait — matching them
+        // produces inflated random-looking results. Apply a progressive penalty.
+        const avgScore = (a + b) / 2;
+        if (avgScore >= 38 && avgScore <= 65) {
+            // midness = 1 at the center (51.5), 0 at the edges (38 or 65)
+            const midness = 1 - Math.abs(avgScore - 51.5) / 13.5;
+            compatibility *= 1 - midness * 0.25; // up to 25% discount at dead center
         }
 
         totalScore += compatibility * weight;
