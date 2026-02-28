@@ -3,9 +3,17 @@ import { verifyOtp } from "@/lib/auth/otp";
 import { prisma } from "@/lib/db/prisma";
 import { apiSuccess, apiError } from "@/lib/utils/http";
 import { createUserSession } from "@/lib/auth/session";
+import { checkRateLimit, getClientIp } from "@/lib/auth/rateLimiter";
 
 export async function POST(req: NextRequest) {
     try {
+        // ── IP Rate Limit ──────────────────────────────────────────────
+        // Max 10 verify attempts per IP per minute (prevents brute-force across emails)
+        const ip = getClientIp(req);
+        if (!checkRateLimit(`${ip}:otp_verify`, 10, 60_000)) {
+            return apiError("RATE_LIMITED", "请求过于频繁，请稍后再试", 429);
+        }
+
         const body = await req.json();
         const { email, code } = body;
 

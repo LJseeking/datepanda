@@ -1,11 +1,18 @@
 import { NextRequest } from "next/server";
-import { requestOtp } from "@/lib/auth/otp";
-import { isSchoolEmail } from "@/lib/auth/otp";
+import { requestOtp, isSchoolEmail } from "@/lib/auth/otp";
 import { sendOtpEmail } from "@/lib/messaging/emailSender";
 import { apiSuccess, apiError } from "@/lib/utils/http";
+import { checkRateLimit, getClientIp } from "@/lib/auth/rateLimiter";
 
 export async function POST(req: NextRequest) {
   try {
+    // ── IP Rate Limit ──────────────────────────────────────────────
+    // Max 5 OTP requests per IP per minute (regardless of target email)
+    const ip = getClientIp(req);
+    if (!checkRateLimit(`${ip}:otp_request`, 5, 60_000)) {
+      return apiError("RATE_LIMITED", "请求过于频繁，请稍后再试", 429);
+    }
+
     const body = await req.json();
     const { email } = body;
 
@@ -29,7 +36,7 @@ export async function POST(req: NextRequest) {
 
     if (!result.sent) {
       if (result.cooldown) {
-        return apiError("RATE_LIMITED", `Please wait ${result.cooldown}s`, 429);
+        return apiError("RATE_LIMITED", `请等待 ${result.cooldown} 秒后再试`, 429);
       }
       return apiError("INVALID_REQUEST", result.error || "Failed to request OTP");
     }
@@ -44,4 +51,3 @@ export async function POST(req: NextRequest) {
     return apiError("INTERNAL_ERROR", "Something went wrong", 500);
   }
 }
-
