@@ -33,8 +33,8 @@ export default function MatchesPage() {
         fetch("/api/matches")
             .then((r) => r.json())
             .then((d) => {
-                if (d.success) setMatches(d.data.matches);
-                else setError(d.error || "加载失败");
+                if (d.ok) setMatches(d.data.matches);
+                else setError(d.error?.message || d.error || "加载失败");
             })
             .catch(() => setError("网络错误"))
             .finally(() => setLoading(false));
