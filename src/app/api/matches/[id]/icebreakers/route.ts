@@ -27,6 +27,10 @@ export async function GET(
         const myAnswers = allAnswers.filter((a) => a.userId === userId);
         const theirAnswers = allAnswers.filter((a) => a.userId === otherId);
 
+        const myCount = myAnswers.length;
+        const theirCount = theirAnswers.length;
+        const thresholdMet = myCount >= ICEBREAKER_THRESHOLD;
+
         const questionsWithAnswers = questions.map((q) => {
             const myAnswer = myAnswers.find((a) => a.questionId === q.id);
             const theirAnswer = theirAnswers.find((a) => a.questionId === q.id);
@@ -39,14 +43,12 @@ export async function GET(
                 myAnswer: myAnswer
                     ? { answerText: myAnswer.answerText, answerOption: myAnswer.answerOption }
                     : null,
-                theirAnswer: theirAnswer
+                // Only reveal their answers once the user has hit the threshold
+                theirAnswer: thresholdMet && theirAnswer
                     ? { answerText: theirAnswer.answerText, answerOption: theirAnswer.answerOption }
                     : null,
             };
         });
-
-        const myCount = myAnswers.length;
-        const theirCount = theirAnswers.length;
 
         return apiSuccess({
             questions: questionsWithAnswers,
@@ -57,6 +59,7 @@ export async function GET(
                 threshold: ICEBREAKER_THRESHOLD,
                 canRequest: myCount >= ICEBREAKER_THRESHOLD,
             },
+            thresholdMet,
             contactStatus: match.contactStatus,
             contactRequesterId: match.contactRequesterId,
         });

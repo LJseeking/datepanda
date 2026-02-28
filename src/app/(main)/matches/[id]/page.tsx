@@ -26,6 +26,7 @@ export default function MatchDetailPage() {
 
     const [questions, setQuestions] = useState<Question[]>([]);
     const [progress, setProgress] = useState({ mine: 0, theirs: 0, total: 8, threshold: 4, canRequest: false });
+    const [thresholdMet, setThresholdMet] = useState(false);
     const [contactStatus, setContactStatus] = useState("LOCKED");
     const [contactRequesterId, setContactRequesterId] = useState<string | null>(null);
     const [contact, setContact] = useState<ContactData | null>(null);
@@ -48,6 +49,7 @@ export default function MatchDetailPage() {
             if (iceData.ok) {
                 setQuestions(iceData.data.questions);
                 setProgress(iceData.data.progress);
+                setThresholdMet(iceData.data.thresholdMet ?? false);
                 setContactStatus(iceData.data.contactStatus);
                 setContactRequesterId(iceData.data.contactRequesterId);
                 // Pre-fill my saved answers
@@ -164,6 +166,17 @@ export default function MatchDetailPage() {
                 <span style={{ ...S.bannerText, color: meta.color }}>{meta.text}</span>
             </div>
 
+            {/* Reveal Banner — shown once threshold is met */}
+            {thresholdMet && (
+                <div style={S.revealBanner}>
+                    <span style={S.revealEmoji}>🎁</span>
+                    <div>
+                        <div style={S.revealTitle}>对方的答案已揭示！</div>
+                        <div style={S.revealSub}>展开每道题即可查看对方的选择，再决定是否交换联系方式</div>
+                    </div>
+                </div>
+            )}
+
             {/* Progress */}
             <div style={S.progressBox}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
@@ -248,13 +261,18 @@ export default function MatchDetailPage() {
                                         {submitting ? "保存中…" : answered ? "更新回答" : "提交回答"}
                                     </button>
 
-                                    {/* Their answer (revealed once they answered) */}
-                                    {q.theirAnswer && (
+                                    {/* Their answer — only available after threshold, shown in expanded state */}
+                                    {thresholdMet && q.theirAnswer && (
                                         <div style={S.theirAnswerBox}>
-                                            <span style={S.theirAnswerLabel}>对方的回答</span>
+                                            <span style={S.theirAnswerLabel}>✨ 对方的回答</span>
                                             <span style={S.theirAnswerText}>
                                                 {q.theirAnswer.answerOption ?? q.theirAnswer.answerText}
                                             </span>
+                                        </div>
+                                    )}
+                                    {thresholdMet && !q.theirAnswer && (
+                                        <div style={{ ...S.theirAnswerBox, opacity: 0.45 }}>
+                                            <span style={S.theirAnswerLabel}>对方还没有回答这题</span>
                                         </div>
                                     )}
                                 </div>
@@ -297,6 +315,10 @@ export default function MatchDetailPage() {
 /* ── Styles ── */
 const S: Record<string, React.CSSProperties> = {
     page: { minHeight: "100vh", background: "#0f172a", fontFamily: "'Inter', sans-serif", paddingBottom: 100 },
+    revealBanner: { margin: "16px 16px 0", borderRadius: 12, background: "linear-gradient(135deg,#1e293b,#1a1f3a)", border: "1px solid #7c3aed60", padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 },
+    revealEmoji: { fontSize: 28, flexShrink: 0 },
+    revealTitle: { color: "#a78bfa", fontWeight: 700, fontSize: 14, marginBottom: 2 },
+    revealSub: { color: "#64748b", fontSize: 12, lineHeight: 1.4 },
     topBar: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", background: "#1e293b", borderBottom: "1px solid #334155" },
     back: { background: "none", border: "none", color: "#94a3b8", fontSize: 18, cursor: "pointer", padding: 0 },
     topTitle: { color: "#f1f5f9", fontWeight: 600 },
