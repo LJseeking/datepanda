@@ -41,3 +41,8 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# secrets / credential notes — never commit
+postgresql*.md
+*credentials*.md
+*secrets*.md
