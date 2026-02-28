@@ -45,7 +45,7 @@ export default function MatchDetailPage() {
             ]);
             const iceData = await iceRes.json();
             const sessionData = await sessionRes.json();
-            if (iceData.success) {
+            if (iceData.ok) {
                 setQuestions(iceData.data.questions);
                 setProgress(iceData.data.progress);
                 setContactStatus(iceData.data.contactStatus);
@@ -57,7 +57,7 @@ export default function MatchDetailPage() {
                 });
                 setAnswers(prefill);
             }
-            if (sessionData.success) setMyUserId(sessionData.data.profile?.userId ?? null);
+            if (sessionData.ok) setMyUserId(sessionData.data.profile?.userId ?? null);
         } catch {
             setError("加载失败，请刷新重试");
         } finally {
@@ -71,7 +71,7 @@ export default function MatchDetailPage() {
         if (contactStatus === "MUTUAL_ACCEPTED") {
             fetch(`/api/matches/${matchId}/contact`)
                 .then(r => r.json())
-                .then(d => { if (d.success) setContact(d.data); });
+                .then(d => { if (d.ok) setContact(d.data); });
         }
     }, [contactStatus, matchId]);
 
@@ -93,8 +93,8 @@ export default function MatchDetailPage() {
         setSubmitting(true);
         const r = await fetch(`/api/matches/${matchId}/contact/request`, { method: "POST" });
         const d = await r.json();
-        if (d.success) { setContactStatus(d.data.status); }
-        else { alert(d.error || "申请失败"); }
+        if (d.ok) { setContactStatus(d.data.status); }
+        else { alert(d.error?.message || d.error || "申请失败"); }
         setSubmitting(false);
     };
 
@@ -102,8 +102,8 @@ export default function MatchDetailPage() {
         setSubmitting(true);
         const r = await fetch(`/api/matches/${matchId}/contact/accept`, { method: "POST" });
         const d = await r.json();
-        if (d.success) { setContactStatus("MUTUAL_ACCEPTED"); await load(); }
-        else { alert(d.error); }
+        if (d.ok) { setContactStatus("MUTUAL_ACCEPTED"); await load(); }
+        else { alert(d.error?.message || d.error); }
         setSubmitting(false);
     };
 
@@ -112,8 +112,8 @@ export default function MatchDetailPage() {
         setSubmitting(true);
         const r = await fetch(`/api/matches/${matchId}/contact/revoke`, { method: "POST" });
         const d = await r.json();
-        if (d.success) { setContactStatus("REVOKED"); setContact(null); }
-        else { alert(d.error); }
+        if (d.ok) { setContactStatus("REVOKED"); setContact(null); }
+        else { alert(d.error?.message || d.error); }
         setSubmitting(false);
     };
 
@@ -122,8 +122,8 @@ export default function MatchDetailPage() {
         setSubmitting(true);
         const r = await fetch(`/api/matches/${matchId}/block`, { method: "POST" });
         const d = await r.json();
-        if (d.success) { setContactStatus("BLOCKED"); }
-        else { alert(d.error); }
+        if (d.ok) { setContactStatus("BLOCKED"); }
+        else { alert(d.error?.message || d.error); }
         setSubmitting(false);
     };
 
@@ -135,7 +135,7 @@ export default function MatchDetailPage() {
             body: JSON.stringify({ reasonCode }),
         });
         const d = await r.json();
-        alert(d.success ? d.data.message : d.error);
+        alert(d.ok ? d.data.message : (d.error?.message || d.error));
     };
 
     // Determine if I am the requester (need CTA to be "waiting" vs "accept")
