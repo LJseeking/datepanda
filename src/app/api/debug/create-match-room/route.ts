@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
         // 4. Set session cookie and redirect to /matches
         const sessionUserId = asUser === "test02" ? test02Id : test01Id;
         const res = NextResponse.redirect(new URL("/matches", req.url));
-        res.cookies.set("dp_session", JSON.stringify({ userId: sessionUserId }), { path: "/", httpOnly: false });
+        res.cookies.set("dp_session", JSON.stringify({ userId: sessionUserId }), { path: "/", httpOnly: true, sameSite: "lax" });
 
         console.log(`[debug/create-match-room] MatchRoom ${matchRoom.id} ready. Logging in as ${asUser} (${sessionUserId})`);
         return res;
